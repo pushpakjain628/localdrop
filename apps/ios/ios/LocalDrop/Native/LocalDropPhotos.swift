@@ -178,10 +178,25 @@ final class LocalDropPhotos: NSObject {
             "durationSeconds": asset.duration > 0 ? NSNumber(value: asset.duration) : NSNull(),
         ]
 
-        // `isInCloud` is a property of `PHAssetResource`, not of `PHAsset`
-        // ("value of type 'PHAsset' has no member 'isInCloud'"). `primary` is the resource
-        // resolved above. The deployment target is 15.1, so no availability gate is needed.
-        payload["hasCloudContent"] = NSNumber(value: primary.isInCloud)
+        // Whether the bytes are still only in iCloud.
+        //
+        // Neither `PHAsset` nor `PHAssetResource` exposes this as public API in the SDK this
+        // project builds against - `asset.isInCloud` gives
+        // "value of type 'PHAsset' has no member 'isInCloud'" and `resource.isInCloud` gives
+        // "value of type 'PHAssetResource' has no member 'isInCloud'". The supported public
+        // route is `PHImageManager.requestImageDataAndOrientation`, whose
+        // `PHImageResultIsInCloudKey` arrives asynchronously, which does not fit a synchronous
+        // metadata payload.
+        //
+        // So it is read through key-value coding, the same technique already used for
+        // `fileSize` in `AssetFileWriter`, and it is a read-only display hint. When the key is
+        // unavailable the value defaults to `false`, which suppresses the "will download from
+        // iCloud" row rather than showing a warning that may be wrong.
+        if let inCloud = (primary.value(forKey: "isInCloud") as? NSNumber)?.boolValue {
+            payload["hasCloudContent"] = NSNumber(value: inCloud)
+        } else {
+            payload["hasCloudContent"] = NSNumber(value: false)
+        }
 
         if includeLivePhotoVideo, asset.mediaSubtypes.contains(.photoLive),
            let paired = Self.pairedVideoResource(for: asset) {

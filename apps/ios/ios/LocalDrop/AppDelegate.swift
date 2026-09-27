@@ -4,25 +4,30 @@ import React_RCTAppDelegate
 
 /// Application entry point.
 ///
-/// The bridge is hosted explicitly rather than through `RCTAppDelegate`'s Swift helpers.
+/// The bridge is hosted explicitly, on a plain `RCTRootView`.
 ///
-/// An earlier version of this file used `RCTReactNativeFactory` and
-/// `import ReactAppDependencyProvider`. That is the React Native 0.77+ app-delegate shape, and
-/// this project pins 0.76.5, where `ReactAppDependencyProvider.podspec` does not exist and no
-/// pod can provide that module. The build failed with
+/// Two earlier attempts at this file did not compile against React Native 0.76.5, and both
+/// mistakes are worth recording:
 ///
-///     AppDelegate.swift:4:8: error: Unable to find module dependency: 'ReactAppDependencyProvider'
+/// 1. It used `RCTReactNativeFactory` and `import ReactAppDependencyProvider`, which is the
+///    React Native 0.77+ app-delegate shape. This project pins 0.76.5, where no
+///    `ReactAppDependencyProvider.podspec` exists, so the build failed with
+///    `error: Unable to find module dependency: 'ReactAppDependencyProvider'`.
+/// 2. It then used `RCTRootViewController`, which does not exist anywhere in 0.76.5 - not in
+///    `RCTRootView.h`, not in any other header. The compile failed with
+///    `error: cannot find 'RCTRootViewController' in scope`.
 ///
-/// Everything used below - `RCTBridge`, `RCTRootViewController`, `RCTBundleURLProvider` and
-/// `RCTBridgeDelegate` - is a long-stable React Native 0.7x API present in 0.76.5, so the file
-/// compiles against the version this repository actually depends on.
+/// In 0.76.5 the available surface is `RCTRootView` (a `UIView`) plus `RCTBridge` and
+/// `RCTBundleURLProvider`, so the root view is created directly and hosted in a stock
+/// `UIViewController`. Everything used here exists in this version.
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
   var window: UIWindow?
 
-  /// Retained for the lifetime of the app: `RCTBridge` holds its delegate weakly, so without
-  /// this the bridge would lose its source-URL provider on the next run loop turn.
+  /// Retained for the lifetime of the app. `RCTBridge` holds its delegate weakly, so without
+  /// a strong reference the bridge would lose its source-URL provider.
+  private var bridge: RCTBridge?
   private var bundleURLDelegate: BundleURLDelegate?
 
   func application(
@@ -32,24 +37,35 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     let delegate = BundleURLDelegate()
     bundleURLDelegate = delegate
 
-    // The bridge delegate is `BundleURLDelegate`, which answers `sourceURL(for:)` with the
-    // compiled/Metro bundle URL. Passing `nil` here would leave the bridge with no way to find
-    // the bundle at all.
+    // The delegate answers `sourceURL(for:)` with the Metro or compiled-bundle URL. Passing
+    // `nil` here would leave the bridge with no way to locate the JavaScript bundle.
     let bridge = RCTBridge(delegate: delegate, launchOptions: launchOptions)
+    self.bridge = bridge
 
-    let rootViewController = RCTRootViewController(
-      bridge: bridge,
-      moduleName: "LocalDrop",
-      initialProperties: nil
-    )
-    rootViewController.view.backgroundColor = UIColor.systemBackground
+    let rootView = RCTRootView(bridge: bridge, moduleName: "LocalDrop", initialProperties: nil)
+    rootView.backgroundColor = UIColor.systemBackground
+    rootView.frame = UIScreen.main.bounds
+    rootView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+    // `RCTRootView` is a `UIView`, not a view controller, so it needs a host controller.
+    let host = RootViewController()
+    host.view.addSubview(rootView)
 
     let window = UIWindow(frame: UIScreen.main.bounds)
-    window.rootViewController = rootViewController
+    window.rootViewController = host
     window.makeKeyAndVisible()
     self.window = window
 
     return true
+  }
+}
+
+/// Plain container for the React root view. React Native supplies the real UI in JavaScript, so
+/// this controller does nothing but own the `RCTRootView`.
+final class RootViewController: UIViewController {
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = UIColor.systemBackground
   }
 }
 
