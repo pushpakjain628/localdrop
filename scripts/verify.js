@@ -55,6 +55,28 @@ function cargo(args, options) {
   });
 }
 
+/**
+ * Runs an in-process check and records it in the summary.
+ *
+ * `run` spawns a command; this is for assertions that are cheaper to express here than as a
+ * separate script. Returning a list of problems means empty is a pass, so a check reads as the
+ * thing it asserts rather than as a pile of conditionals.
+ */
+function check(name, assert) {
+  const started = Date.now();
+  let passed = false;
+  let output = '';
+  try {
+    const problems = assert() ?? [];
+    output = problems.join('\n');
+    passed = problems.length === 0;
+  } catch (error) {
+    output = error instanceof Error ? (error.stack ?? String(error)) : String(error);
+  }
+  results.push({ name, passed, ms: Date.now() - started, output });
+  return passed;
+}
+
 console.log('\nLocalDrop verification\n');
 
 /* ------------------------------------------------------------------ shared */
@@ -80,6 +102,52 @@ run('windows: dashboard typecheck + build', 'npm.cmd', [
   '--workspace',
   '@localdrop/windows',
 ]);
+
+/* ------------------------------------------------------------------ iOS native bridge */
+
+/**
+ * Balances the `@interface`/`@end` pairs in the Objective-C bridge file.
+ *
+ * `RCT_EXTERN_MODULE` opens an `@implementation` that the block's trailing `@end` closes, so a
+ * missing `@end` is a compile error. Clang reports it against the *next* block - "missing
+ * '@end'" pointing at the following `@interface` - which sends you looking at the wrong code.
+ *
+ * This file was a header that was never compiled and carried no `@end` at all, so the mistake
+ * survived until the first real compile, at the cost of a seven-minute CI round trip. A count is
+ * not a parse, but the imbalance is the only failure mode here that a Mac-only check would have
+ * caught, and this runs anywhere.
+ */
+function stripObjCComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+}
+
+check('ios: RCT_EXTERN_MODULE blocks are balanced', () => {
+  const file = path.join(
+    ROOT,
+    'apps',
+    'ios',
+    'ios',
+    'LocalDrop',
+    'Native',
+    'LocalDropNativeModules.m',
+  );
+  if (!fs.existsSync(file)) {
+    return ['LocalDropNativeModules.m is missing, so no native module can register'];
+  }
+  const code = stripObjCComments(fs.readFileSync(file, 'utf8'));
+  const opened = (code.match(/@interface\s+RCT_EXTERN_MODULE\b/g) ?? []).length;
+  const closed = (code.match(/^[ \t]*@end[ \t]*$/gm) ?? []).length;
+  if (opened === 0) {
+    return ['LocalDropNativeModules.m declares no RCT_EXTERN_MODULE blocks'];
+  }
+  if (opened !== closed) {
+    return [
+      `LocalDropNativeModules.m opens ${opened} RCT_EXTERN_MODULE block(s) but closes ` +
+        `${closed}. Every block needs a trailing @end.`,
+    ];
+  }
+  return [];
+});
 
 /* ------------------------------------------------------------------ iOS project */
 

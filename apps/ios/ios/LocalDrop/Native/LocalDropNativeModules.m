@@ -11,11 +11,17 @@
  * declares each exported method with its argument and callback types.
  *
  * This must be an Objective-C *implementation* file (`.m`), not a header. `RCT_EXTERN_MODULE`
- * expands to an `@implementation` that carries a module constructor calling
+ * expands to an `@implementation` carrying a module constructor calling
  * `RCTRegisterModule`, and a header is never compiled, so nothing is ever registered. That
  * failure is invisible at build time: the app compiles, links and launches, and then every
  * `NativeModules.LocalDrop*` lookup is `undefined`, which is exactly what `hasNativeModules` in
  * `src/native/NativeModules.ts` reports as "LocalDrop needs a rebuild".
+ *
+ * Each `@interface RCT_EXTERN_MODULE` below therefore needs its own `@end`, because the macro
+ * opens an `@implementation` that the trailing `@end` closes. The file was originally a header
+ * with no `@end` anywhere, which is consistent with it never having been compiled; once it is,
+ * the missing `@end`s surface as "missing '@end'" against the *next* block, which reads like a
+ * problem with the wrong block. `scripts/verify.js` now checks the balance.
  *
  * Two things must stay in step with the TypeScript wrappers in `src/native/NativeModules.ts`:
  * the module names and the method signatures. The return shapes are documented there. Each
@@ -71,6 +77,8 @@ RCT_EXTERN_METHOD(clearThumbnailCache
                   : (RCTPromiseResolveBlock)resolve rejecter
                   : (RCTPromiseRejectBlock)reject)
 
+@end
+
 #pragma mark - LocalDropTransfer
 
 @interface RCT_EXTERN_MODULE (LocalDropTransfer, RCTEventEmitter)
@@ -121,6 +129,8 @@ RCT_EXTERN_METHOD(stagingFootprint
                   : (RCTPromiseResolveBlock)resolve rejecter
                   : (RCTPromiseRejectBlock)reject)
 
+@end
+
 #pragma mark - LocalDropDiscovery
 
 @interface RCT_EXTERN_MODULE (LocalDropDiscovery, RCTEventEmitter)
@@ -145,6 +155,8 @@ RCT_EXTERN_METHOD(resolveHost
                   : (nonnull NSNumber *)port resolver
                   : (RCTPromiseResolveBlock)resolve rejecter
                   : (RCTPromiseRejectBlock)reject)
+
+@end
 
 #pragma mark - LocalDropSecureStore
 
@@ -191,3 +203,5 @@ RCT_EXTERN_METHOD(clearPairing
 RCT_EXTERN_METHOD(deviceIdentity
                   : (RCTPromiseResolveBlock)resolve rejecter
                   : (RCTPromiseRejectBlock)reject)
+
+@end
