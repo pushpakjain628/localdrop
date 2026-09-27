@@ -276,7 +276,11 @@ function configureBuildSettings(project) {
     OTHER_LDFLAGS: '$(inherited) -ObjC',
     CLANG_ENABLE_MODULES: 'YES',
     DEFINES_MODULE: 'YES',
-    LD_RUNPATH_SEARCH_PATHS: '$(inherited) @executable_path/Frameworks',
+    // Quoted: the pbxproj grammar is whitespace/token sensitive, and the bare
+    // `$(inherited) @executable_path/Frameworks` form makes the whole buildSettings
+    // dictionary fail to parse under CocoaPods' Xcodeproj reader ("missing ';' after
+    // key-value pair ... found '('"). A single quoted string is what Xcode itself writes.
+    LD_RUNPATH_SEARCH_PATHS: '"$(inherited) @executable_path/Frameworks"',
     // Quoted because the pbxproj grammar treats a bare comma as a list separator: written
     // unquoted, `1,2` is a syntax error and the project will not open at all.
     TARGETED_DEVICE_FAMILY: '"1,2"',
