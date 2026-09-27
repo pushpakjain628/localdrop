@@ -5,13 +5,21 @@
  * Objective-C bridge declarations for the LocalDrop native modules.
  *
  * The implementation is Swift (`LocalDropPhotos.swift`, `LocalDropTransfer.swift`,
- * `LocalDropDiscovery.swift`, `LocalDropSecureStore.swift`). These headers are what make those
+ * `LocalDropDiscovery.swift`, `LocalDropSecureStore.swift`). This file is what makes those
  * classes visible to the React Native bridge, because the bridge looks up modules by their
  * Objective-C runtime name. `RCT_EXTERN_MODULE` registers the class; `RCT_EXTERN_METHOD`
  * declares each exported method with its argument and callback types.
  *
+ * This must be an Objective-C *implementation* file (`.m`), not a header. `RCT_EXTERN_MODULE`
+ * expands to an `@implementation` that carries a module constructor calling
+ * `RCTRegisterModule`, and a header is never compiled, so nothing is ever registered. That
+ * failure is invisible at build time: the app compiles, links and launches, and then every
+ * `NativeModules.LocalDrop*` lookup is `undefined`, which is exactly what `hasNativeModules` in
+ * `src/native/NativeModules.ts` reports as "LocalDrop needs a rebuild".
+ *
  * Two things must stay in step with the TypeScript wrappers in `src/native/NativeModules.ts`:
- * the module names and the method signatures. The return shapes are documented there.
+ * the module names and the method signatures. The return shapes are documented there. Each
+ * `@objc(...)` selector in the Swift files must match the `RCT_EXTERN_METHOD` selector here.
  *
  * `LocalDropTransfer` and `LocalDropDiscovery` subclass `RCTEventEmitter` in Swift, which is how
  * native code pushes progress and discovery results up to JS. `supportedEvents` is overridden in

@@ -6,7 +6,7 @@
  * surfaces as a TypeScript error in one file rather than as `undefined is not a function` in a
  * screen.
  *
- * The module and method names here must match `ios/LocalDrop/Native/LocalDropNativeModules.h`
+ * The module and method names here must match `ios/LocalDrop/Native/LocalDropNativeModules.m`
  * and the Swift implementations.
  */
 

@@ -56,6 +56,12 @@ const SWIFT_VERSION = '5.0';
 /** Compiled by the app target. */
 const SOURCES = [
   'LocalDrop/AppDelegate.swift',
+  // The Objective-C half of the bridge. This *must* be a compiled `.m`, not a header:
+  // `RCT_EXTERN_MODULE` expands to an `@implementation` carrying a module constructor that
+  // calls `RCTRegisterModule`, and a header is never compiled. Keeping it uncompiled meant no
+  // native module was ever registered, which the app reports as "LocalDrop needs a rebuild" on
+  // a perfectly good build.
+  'LocalDrop/Native/LocalDropNativeModules.m',
   'LocalDrop/Native/LocalDropPhotos.swift',
   'LocalDrop/Native/LocalDropTransfer.swift',
   'LocalDrop/Native/LocalDropDiscovery.swift',
@@ -66,9 +72,6 @@ const SOURCES = [
 
 /** Part of the target but not compiled. */
 const NON_COMPILED = [
-  // The Objective-C half of the bridge. `RCT_EXTERN_MODULE` lives here; the implementations
-  // are the Swift files above.
-  'LocalDrop/Native/LocalDropNativeModules.h',
   'LocalDrop/LocalDrop-Bridging-Header.h',
   'LocalDrop/Info.plist',
 ];
@@ -504,6 +507,26 @@ function verify(pbxprojPath) {
     problems.push(
       `these files are still in the Sources build phase but are not part of the project: ${unexpectedCompiled.join(', ')}`,
     );
+  }
+
+  // `RCT_EXTERN_MODULE` is what registers the four native modules with the bridge, and it only
+  // does anything when the file containing it is compiled. It is a runtime-only failure - the
+  // build is green and the app just reports "LocalDrop needs a rebuild" forever - so it is worth
+  // its own named assertion rather than relying on the generic membership check above.
+  const EXTERN_MODULE_FILE = 'LocalDropNativeModules.m';
+  if (!compiledNames.includes(EXTERN_MODULE_FILE)) {
+    problems.push(
+      `${EXTERN_MODULE_FILE} is not compiled, so RCT_EXTERN_MODULE registers nothing and every ` +
+        'native module is missing at runtime',
+    );
+  }
+  for (const relative of NON_COMPILED) {
+    if (path.extname(relative) === '.h') {
+      const name = path.basename(relative);
+      if (compiledNames.includes(name)) {
+        problems.push(`${name} is a header and must not be in the Sources build phase`);
+      }
+    }
   }
 
   // Resources must be in the resources phase, or they are not in the app bundle.
