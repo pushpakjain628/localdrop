@@ -268,6 +268,14 @@ export class AppStore {
   }
 
   /* ---------------------------------------------------------------- manual entry */
+  //
+  // The setters below are arrow properties rather than methods, and that is load-bearing. They
+  // are handed straight to `<TextInput onChangeText={...}>`, which calls them as plain functions.
+  // A method reference loses its receiver that way - `this` is `undefined` inside a strict-mode
+  // ES module - so `this.set(...)` threw `TypeError: this.set is not a function` on the first
+  // keystroke. In a Release build that is fatal: React Native's default handler calls `RCTFatal`
+  // and the process exits, so it presented as "the app closes when I type", with no error shown.
+  // Anything passed as a callback must be bound.
 
   openManualEntry(): void {
     this.set({ manualEntry: { host: '', port: 47821, error: null, checking: false } });
@@ -277,21 +285,21 @@ export class AppStore {
     this.set({ manualEntry: null });
   }
 
-  setManualHost(host: string): void {
+  setManualHost = (host: string): void => {
     const current = this.state.manualEntry;
     if (!current) {
       return;
     }
     this.set({ manualEntry: { ...current, host, error: null } });
-  }
+  };
 
-  setManualPort(port: number): void {
+  setManualPort = (port: number): void => {
     const current = this.state.manualEntry;
     if (!current) {
       return;
     }
     this.set({ manualEntry: { ...current, port, error: null } });
-  }
+  };
 
   /**
    * Probes a typed address and, if reachable, adds it to the list.
@@ -373,9 +381,10 @@ export class AppStore {
     }
   }
 
-  setPairingCode(code: string): void {
+  /** An arrow property, because it is passed straight to a `<TextInput>`. See the note above. */
+  setPairingCode = (code: string): void => {
     this.set({ pairingCode: code });
-  }
+  };
 
   /** Exchanges the entered code for a token. */
   async completePairing(): Promise<boolean> {

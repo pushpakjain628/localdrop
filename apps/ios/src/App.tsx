@@ -27,6 +27,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { useAppStore } from './state/useStore';
 import type { ScreenName } from './state/AppStore';
 import { NativeModuleUnavailableError } from './native/NativeModules';
+import { CrashNotice } from './CrashNotice';
 
 const TABS: Array<{ name: ScreenName; label: string; glyph: string }> = [
   { name: 'home', label: 'Home', glyph: '⌂' },
@@ -66,6 +67,8 @@ export function App() {
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={palette.surface} />
+
+      <CrashNotice />
 
       <View style={styles.content}>
         {screen === 'home' ? (

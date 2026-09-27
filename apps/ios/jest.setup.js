@@ -109,6 +109,64 @@ jest.mock('react-native/Libraries/BatchedBridge/NativeModules', () => ({
   PlatformConstants: {
     forceTouchAvailable: true,
     isTesting: true,
+    getConstants: () => ({
+      reactNativeVersion: { major: 0, minor: 76, patch: 5 },
+      isTesting: true,
+    }),
+  },
+  // `StyleSheet` reaches for screen metrics at import time, and it gets them from the `DeviceInfo`
+  // TurboModule. Mocking `NativeModules` wholesale removes it, so without this every suite that
+  // imports a component fails to even load - which is why the component tests below exist but
+  // could not run before.
+  DeviceInfo: {
+    getConstants: () => ({
+      Dimensions: {
+        window: { width: 390, height: 844, scale: 3, fontScale: 1 },
+        screen: { width: 390, height: 844, scale: 3, fontScale: 1 },
+      },
+    }),
+  },
+  // `Keyboard` constructs a `NativeEventEmitter` with this at module scope, and a `Modal` pulls
+  // `ScrollView` (and therefore `Keyboard`) in. Absent, the emitter throws while rendering any
+  // screen that contains a `Modal`.
+  KeyboardObserver: {
+    addListener: jest.fn(),
+    removeListeners: jest.fn(),
+  },
+  // `StatusBar` and `Modal` resolve these through `TurboModuleRegistry.getEnforcing`, which falls
+  // back to `NativeModules` when there is no turbo module proxy - as there is not under Jest.
+  // Mocking `NativeModules` wholesale therefore has to supply them, or importing a screen throws
+  // before a single assertion runs.
+  StatusBarManager: {
+    getConstants: () => ({ HEIGHT: 20, DEFAULT_BACKGROUND_COLOR: null }),
+    setColor: jest.fn(),
+    setTranslucent: jest.fn(),
+    setStyle: jest.fn(),
+    setHidden: jest.fn(),
+    setNetworkActivityIndicatorVisible: jest.fn(),
+  },
+  DevSettings: {
+    reload: jest.fn(),
+    setHotLoadingEnabled: jest.fn(),
+    setIsDebuggingRemotely: jest.fn(),
+    setProfilingEnabled: jest.fn(),
+    toggleElementInspector: jest.fn(),
+    addMenuItem: jest.fn(),
+    setIsShakeToShowDevMenuEnabled: jest.fn(),
+    addListener: jest.fn(),
+    removeListeners: jest.fn(),
+  },
+  // Read by LogBox, which React mounts as soon as anything renders.
+  SourceCode: {
+    getConstants: () => ({ scriptURL: 'http://localhost:1420/index.bundle' }),
+  },
+  // `ActivityIndicator`, which the button inside the manual-entry sheet renders while busy.
+  ImageLoader: {
+    getConstants: () => ({}),
+    getSize: jest.fn().mockResolvedValue([0, 0]),
+    getSizeWithHeaders: jest.fn().mockResolvedValue([0, 0]),
+    prefetchImage: jest.fn().mockResolvedValue(true),
+    queryCache: jest.fn().mockResolvedValue({}),
   },
   SettingsManager: { settings: {}, getConstants: () => ({ settings: {} }) },
 }));
