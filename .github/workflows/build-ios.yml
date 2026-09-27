@@ -50,6 +50,13 @@ jobs:
       - name: npm install (workspace root)
         run: npm install
 
+      # `@localdrop/shared` is consumed as compiled output (`main: dist/index.js`) and `dist/`
+      # is gitignored, so it has to be built before Metro can bundle the app. This was a real
+      # failure: the bundle died with "the package ... specifies a `main` module field that
+      # could not be resolved".
+      - name: Build @localdrop/shared
+        run: npm run build --workspace @localdrop/shared
+
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:

@@ -12,21 +12,28 @@ const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
  *    file should invalidate the bundle rather than silently serve a stale one.
  */
 const projectRoot = __dirname;
-const sharedRoot = path.resolve(projectRoot, '../../packages/shared');
+const workspaceRoot = path.resolve(projectRoot, '../..');
 
 /** @type {import('metro-config').MetroConfig} */
 const config = {
-  watchFolders: [sharedRoot],
+  // The workspace root, not just `packages/shared`. This app is an npm workspace, so
+  // `react`, `react-native` and every other dependency is hoisted into
+  // `<workspaceRoot>/node_modules`, which lives *outside* this project root. Metro builds an
+  // indexed file map from `projectRoot` + `watchFolders` and resolves modules through that
+  // index, so a directory that is not indexed is treated as absent no matter that it exists on
+  // disk. Watching only the shared package therefore left the hoisted dependencies invisible
+  // and every bundle failed with
+  //   "react-native could not be found within the project or in these directories".
+  // Watching the workspace root covers the shared package, the hoisted `node_modules` and the
+  // sibling apps in one entry.
+  watchFolders: [workspaceRoot],
   resolver: {
-    // Deliberately empty. This app is an npm workspace, so `react` and `react-native` are
-    // hoisted to the repository root and have no `apps/ios/node_modules` directory at all.
-    // An earlier version of this file set `extraNodeModules` to
-    // `apps/ios/node_modules/{react,react-native}`, which do not exist, and Metro honours
-    // that mapping over its own lookup - so the bundle died with
-    //   "react-native could not be found within the project or in these directories".
-    // Metro's default hierarchical lookup already walks up from this project root and finds
-    // the hoisted copy, and a hoisted install contains exactly one, so the "two copies break
-    // hooks" problem the override was meant to prevent cannot occur here.
+    // Deliberately empty. An earlier version pointed `extraNodeModules` at
+    // `apps/ios/node_modules/{react,react-native}`, which do not exist in a hoisted
+    // workspace, and Metro honours that mapping over its own lookup. With the workspace root
+    // watched, Metro's default hierarchical lookup finds the single hoisted copy on its own,
+    // and a hoisted install contains exactly one - so the duplicate-copy problem that override
+    // was guarding against cannot occur here.
   },
 };
 
