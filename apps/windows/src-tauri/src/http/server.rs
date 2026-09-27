@@ -2,6 +2,7 @@
 
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use std::sync::{Mutex, OnceLock};
 
 use axum::http::HeaderValue;
 use axum::routing::{get, post, put};
@@ -180,12 +181,49 @@ async fn shutdown_signal() {
     }
 }
 
-/// This machine's IPv4 addresses, best effort.
+/// This machine's IPv4 addresses, best effort, cached briefly.
 ///
 /// Uses the OS interface list so the log shows the address on the Wi-Fi subnet rather than a
 /// virtual adapter. Failure is not an error: mDNS discovery is the primary mechanism and the
 /// IP fallback only needs the list for a friendlier log line.
+///
+/// Cached because `/api/health` is polled every few seconds by the dashboard, and enumerating
+/// interfaces means spawning `ipconfig`. Thirty seconds is short enough to notice a phone moving
+/// to a different network, and long enough that the process is not launched on every poll.
 pub fn local_ipv4_addresses() -> Vec<String> {
+    static CACHE: OnceLock<Mutex<CachedAddresses>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| {
+        Mutex::new(CachedAddresses {
+            value: Vec::new(),
+            read_at: None,
+        })
+    });
+
+    let Ok(mut guard) = cache.lock() else {
+        // A poisoned lock must not take the health endpoint down with it.
+        return enumerate_ipv4_addresses();
+    };
+
+    let fresh = guard
+        .read_at
+        .is_some_and(|read_at| read_at.elapsed() < ADDRESS_CACHE_TTL);
+    if !fresh || guard.value.is_empty() {
+        guard.value = enumerate_ipv4_addresses();
+        guard.read_at = Some(std::time::Instant::now());
+    }
+    guard.value.clone()
+}
+
+struct CachedAddresses {
+    value: Vec<String>,
+    read_at: Option<std::time::Instant>,
+}
+
+/// How long an interface enumeration is reused.
+const ADDRESS_CACHE_TTL: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// Runs `ipconfig` and parses it. Separate from the cache so it can be tested without a process.
+fn enumerate_ipv4_addresses() -> Vec<String> {
     let mut command = std::process::Command::new("ipconfig");
     command.stdout(std::process::Stdio::piped());
     let Ok(output) = command.output() else {

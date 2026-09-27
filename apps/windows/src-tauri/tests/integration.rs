@@ -259,6 +259,23 @@ async fn health_is_reachable_without_a_token() {
     assert_eq!(json["paired"], true);
     assert!(json["storageWritable"].as_bool().unwrap());
     assert!(json["backupDirectory"].is_string());
+
+    // The phone's manual-entry sheet tells the user to read the address off the dashboard, and
+    // the dashboard reads it from here. Without this the fallback is unusable: the app would ask
+    // for an address it had no way of learning. The list is empty on a host with no non-loopback
+    // adapter, so only the shape is asserted, never the contents.
+    let addresses = json["lanAddresses"]
+        .as_array()
+        .expect("lanAddresses must always be present, even when empty");
+    for address in addresses {
+        let address = address.as_str().expect("each address must be a string");
+        assert!(!address.is_empty(), "an empty string is not an address");
+        assert_eq!(
+            address.split('.').count(),
+            4,
+            "a user has to be able to type this: {address}"
+        );
+    }
 }
 
 /* ------------------------------------------------------------------ pairing */

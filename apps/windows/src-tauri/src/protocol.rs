@@ -123,6 +123,11 @@ pub struct HealthResponse {
     pub storage_writable: bool,
     pub free_space_bytes: Option<u64>,
     pub uptime_seconds: u64,
+    /// This PC's LAN addresses, so the dashboard can show an address the user can type into
+    /// their phone when mDNS discovery is blocked. Manual entry is the documented fallback, and
+    /// it was unusable without this: the phone's help text points at the address in the top bar
+    /// and there was nothing there.
+    pub lan_addresses: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

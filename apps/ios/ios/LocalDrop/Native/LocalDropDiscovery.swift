@@ -153,10 +153,16 @@ final class LocalDropDiscovery: RCTEventEmitter {
             // app builds. NWBrowser deliberately does not resolve an address here - per Apple's
             // Network team that is intended behaviour, and resolving every result would be a
             // Bonjour anti-pattern - so the name is used and the OS resolves it on connect.
-            let host = name
+            //
+            // The `.local` suffix is not optional. `URLSession` will not resolve a bare
+            // single-label name, so `http://TEST-PC:47821` fails with "could not connect to
+            // server" even though the browse found the PC, and the user sees an empty device
+            // list. `.local` is also what `NSAllowsLocalNetworking` keys off, so it has to be
+            // spelled here rather than appended later.
+            let host = "\(Self.dnsLabel(name)).local"
             let txtRecord = Self.txtRecord(from: result)
             let port = Self.port(fromTXTRecord: txtRecord) ?? Self.defaultPort
-            let key = "\(name)@\(host):\(port)"
+            let key = "\(host):\(port)"
 
             if let seen = self.recentlySeen[key], now.timeIntervalSince(seen) < self.duplicateWindow {
                 continue
@@ -294,4 +300,18 @@ final class LocalDropDiscovery: RCTEventEmitter {
 
     /// Kept in lock-step with `DEFAULT_PORT` in the shared contract and the Rust server.
     static let defaultPort: UInt16 = 47821
+
+    /// Reduces a Bonjour instance name to a single DNS label.
+    ///
+    /// A Windows PC can be called "Anna's PC", and mDNS instance names may contain spaces, but
+    /// the name we hand to `URLSession` is a host label and cannot. This mirrors `dns_label` in
+    /// `apps/windows/src-tauri/src/bonjour.rs`, which builds the server's own host name from the
+    /// same computer name with the same rule - so the two sides agree on what `Anna's PC` is
+    /// called. If they disagreed, the browse would succeed and the connection would not.
+    static func dnsLabel(_ name: String) -> String {
+        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        let mapped = String(name.unicodeScalars.map { allowed.contains($0) ? Character($0) : "-" })
+        let trimmed = mapped.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        return trimmed.isEmpty ? "localdrop-pc" : trimmed
+    }
 }

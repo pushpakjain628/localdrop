@@ -72,10 +72,28 @@
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
+	<!--
+	    App Transport Security.
+
+	    The wire protocol is plain HTTP on the LAN (see `packages/shared/src/protocol.ts`), so
+	    without an exception here iOS blocks every request to the PC and the phone reports the
+	    address as unreachable. `NSAllowsArbitraryLoads` is deliberately *not* used: it would turn
+	    ATS off for the whole app, including any public host. `NSAllowsLocalNetworking` is the
+	    narrow exception - it permits cleartext to private address ranges, link-local and `.local`
+	    names only, so ATS stays enforced for anything on the internet.
+
+	    This has to be a real `NSAppTransportSecurity` dictionary in the plist. An
+	    `INFOPLIST_KEY_NSAppTransportSecurity_*` build setting does not work here, because Xcode
+	    only merges those when it generates the plist itself; this target supplies an explicit
+	    `INFOPLIST_FILE`, so they were silently ignored and the shipped app had no exception at
+	    all. `scripts/generate-ios-project.js` asserts this key is present.
+	-->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<!-- Large backups should be allowed to run on cellular rather than silently waiting for Wi-Fi. -->
-	<key>NSAllowsArbitraryLoads</key>
 	<false/>
 	<key>UIAppFonts</key>
 	<array/>

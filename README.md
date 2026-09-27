@@ -101,6 +101,35 @@ Then run the `LocalDrop` scheme. Start Metro first with `npm start` in `apps/ios
 **After changing anything under `ios/LocalDrop/Native/`, rebuild the app in Xcode.**
 Those are compiled Swift/Objective-C files; reloading JavaScript is not enough.
 
+### If the iPhone cannot see the PC
+
+In order of likelihood:
+
+1. **The app is out of date.** Sideload the `.ipa` from the latest
+   [successful build](https://github.com/pushpakjain628/localdrop/actions). A build from before
+   the App Transport Security fix cannot make *any* request to the PC, because the app talks
+   plain HTTP and iOS blocks cleartext by default. `Info.plist` now carries an
+   `NSAppTransportSecurity` exception scoped to local networking.
+
+2. **The phone and the PC are not on the same Wi-Fi.** Guest networks in particular isolate
+   clients from each other, so mDNS never crosses them.
+
+3. **Windows Firewall is blocking the port.** The server binds `0.0.0.0:47821`, and the first
+   launch normally prompts to allow it. If that prompt was dismissed, allow it for **all**
+   profiles — the rules Windows creates on first run are often scoped to one profile, and a
+   profile change silently breaks them:
+
+   ```powershell
+   # Run PowerShell as Administrator
+   New-NetFirewallRule -DisplayName "LocalDrop" `
+     -Direction Inbound -Action Allow -Protocol TCP -LocalPort 47821 `
+     -Profile Any
+   ```
+
+4. **Discovery is blocked but the network works.** Tap **Enter address** on the phone and type
+   the address from **On this network** in the dashboard's top bar. That is the documented
+   fallback and it needs nothing but the two devices being on the same subnet.
+
 ---
 
 ## Verification

@@ -4,6 +4,7 @@ import { Pill } from './ui';
 import type { Tone } from '../lib/format';
 import type { ConnectionState } from '../lib/useServer';
 import type { HealthResponse } from '@localdrop/shared';
+import { DEFAULT_PORT } from '@localdrop/shared';
 
 const CONNECTION_LABEL: Record<ConnectionState, string> = {
   connecting: 'Starting up',
@@ -47,6 +48,22 @@ export function StatusBar({
       <div style={styles.statusGroup}>
         <StatusPill connection={connection} />
 
+        {/* The manual-entry fallback. The phone's "enter address" sheet tells the user to read
+            this from the top bar, so it has to be here - and it has to be clickable, because
+            typing an address off a screen is where transposed digits come from. */}
+        <div style={styles.meta}>
+          <MetaLabel
+            label="On this network"
+            value={
+              health?.lanAddresses?.length
+                ? health.lanAddresses.map((address) => `${address}:${DEFAULT_PORT}`).join('  ')
+                : 'No LAN address found'
+            }
+            tone={health?.lanAddresses?.length ? 'neutral' : 'warning'}
+            selectable
+          />
+        </div>
+
         <div style={styles.meta}>
           <MetaLabel
             label="Library"
@@ -88,10 +105,13 @@ function MetaLabel({
   label,
   value,
   tone,
+  selectable = false,
 }: {
   label: string;
   value: string;
   tone: 'neutral' | 'warning' | 'danger' | 'success';
+  /** Lets the user copy the value. Worth it for an address they have to retype on a phone. */
+  selectable?: boolean;
 }) {
   const color = {
     neutral: colors.textMuted,
@@ -102,7 +122,10 @@ function MetaLabel({
   return (
     <div style={styles.metaItem}>
       <span style={styles.metaLabel}>{label}</span>
-      <span style={{ ...styles.metaValue, color }} title={value}>
+      <span
+        style={{ ...styles.metaValue, color, userSelect: selectable ? 'text' : undefined }}
+        title={value}
+      >
         {value}
       </span>
     </div>

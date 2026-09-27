@@ -43,6 +43,14 @@ export interface HealthResponse {
   freeSpaceBytes: number | null;
   /** Uptime in seconds, used by the phone to detect a restarted server. */
   uptimeSeconds: number;
+  /**
+   * This PC's LAN addresses, for the manual-entry fallback.
+   *
+   * Discovery can be blocked by a guest or corporate network, and then the only way in is to
+   * type the address. The dashboard shows these so there is something to type; the phone's
+   * help text points at exactly this.
+   */
+  lanAddresses: string[];
 }
 
 /** `POST /api/pair` — exchange a verification code for a long-lived bearer token. */

@@ -231,7 +231,7 @@ function ManualEntrySheet() {
           <View style={styles.grabber} />
           <Text style={styles.sheetTitle}>Enter your PC's address</Text>
           <Text style={styles.sheetHelp}>
-            Open LocalDrop on your PC. The address it shows is in the top bar, next to “Library”.
+            Open LocalDrop on your PC. Its address is in the top bar, under “On this network”.
           </Text>
 
           <Text style={styles.fieldLabel}>IP address</Text>

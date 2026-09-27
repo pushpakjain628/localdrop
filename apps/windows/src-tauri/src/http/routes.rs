@@ -49,6 +49,7 @@ pub async fn health(State(state): State<SharedState>) -> Json<HealthResponse> {
         storage_writable,
         free_space_bytes: storage::free_space_bytes(&backup_dir),
         uptime_seconds: state.uptime_seconds(),
+        lan_addresses: super::server::local_ipv4_addresses(),
     })
 }
 

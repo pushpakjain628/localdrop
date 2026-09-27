@@ -289,9 +289,11 @@ function configureBuildSettings(project) {
     // Quoted because the pbxproj grammar treats a bare comma as a list separator: written
     // unquoted, `1,2` is a syntax error and the project will not open at all.
     TARGETED_DEVICE_FAMILY: '"1,2"',
-    // The app talks plain HTTP to a LAN address, which this narrowly-scoped exception covers.
-    // `NSAllowsArbitraryLoads` would disable ATS entirely and is deliberately not used.
-    INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking: 'YES',
+    // The app talks plain HTTP to a LAN address. The exception is `NSAllowsLocalNetworking` in
+    // `Info.plist`, *not* a build setting: `INFOPLIST_KEY_*` is only merged when Xcode generates
+    // the plist itself, and this target supplies an explicit `INFOPLIST_FILE`, so a setting here
+    // is silently ignored - which is exactly how the shipped app ended up with no ATS exception
+    // and could not reach the PC. See the comment in `Info.plist`.
   };
   for (const [key, value] of Object.entries(settings)) {
     project.addBuildProperty(key, quoteIfNeeded(value));
@@ -584,6 +586,28 @@ function verify(pbxprojPath) {
   }
   if (!raw.includes('-ObjC')) {
     problems.push('OTHER_LDFLAGS is missing -ObjC, so RCT_EXTERN_MODULE classes would be stripped');
+  }
+
+  // ATS and Bonjour are runtime-only failures: the build is green, the app installs, and then the
+  // phone cannot reach the PC and cannot discover it. Neither is observable from the project
+  // graph, so both are asserted against `Info.plist` directly.
+  const plist = fs.readFileSync(path.join(IOS_DIR, 'LocalDrop', 'Info.plist'), 'utf8');
+  if (!/<key>NSAppTransportSecurity<\/key>/.test(plist)) {
+    problems.push(
+      'Info.plist has no NSAppTransportSecurity dictionary, so ATS blocks every plain-HTTP ' +
+        'request to the PC and the phone reports the address as unreachable',
+    );
+  }
+  if (!/<key>NSAllowsLocalNetworking<\/key>\s*<true\/>/.test(plist)) {
+    problems.push(
+      'Info.plist must allow NSAllowsLocalNetworking - the wire protocol is plain HTTP on the LAN',
+    );
+  }
+  if (!/<key>NSBonjourServices<\/key>/.test(plist) || !/_localdrop\._tcp/.test(plist)) {
+    problems.push('Info.plist must declare _localdrop._tcp in NSBonjourServices or mDNS browse fails');
+  }
+  if (!/<key>NSLocalNetworkUsageDescription<\/key>/.test(plist)) {
+    problems.push('Info.plist has no NSLocalNetworkUsageDescription, so iOS denies local browsing');
   }
 
   if (problems.length > 0) {
