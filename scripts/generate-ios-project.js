@@ -272,8 +272,10 @@ function configureBuildSettings(project) {
     ASSETCATALOG_COMPILER_APPICON_NAME: 'AppIcon',
     // `RCT_EXTERN_MODULE` needs the Objective-C runtime, which the linker strips unused
     // categories from without this. The symptom is a runtime "module not found", not a build
-    // error, which is exactly why it is set explicitly.
-    OTHER_LDFLAGS: '$(inherited) -ObjC',
+    // error, which is exactly why it is set explicitly. Quoted because a value containing
+    // `$(...)` and a space must be a single quoted string in the pbxproj grammar or
+    // Nanaimo fails to parse the surrounding dictionary.
+    OTHER_LDFLAGS: '"$(inherited) -ObjC"',
     CLANG_ENABLE_MODULES: 'YES',
     DEFINES_MODULE: 'YES',
     // Quoted: the pbxproj grammar is whitespace/token sensitive, and the bare
@@ -289,8 +291,29 @@ function configureBuildSettings(project) {
     INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking: 'YES',
   };
   for (const [key, value] of Object.entries(settings)) {
-    project.addBuildProperty(key, value);
+    project.addBuildProperty(key, quoteIfNeeded(value));
   }
+}
+
+/**
+ * Wraps a build setting value in double quotes when the pbxproj grammar requires it.
+ *
+ * A `.pbxproj` is an old-style plist. A value that contains whitespace, `$(...)`, or `@` must
+ * be a single quoted string, otherwise the parser (Nanaimo, used by CocoaPods' Xcodeproj) reads
+ * the `$(` as a new key and aborts the whole file with
+ * `Dictionary missing ';' after key-value pair for "...", found "("`. Xcode itself always writes
+ * these quoted, so matching that is the portable choice.
+ *
+ * Values that are already quoted - deliberately, e.g. `TARGETED_DEVICE_FAMILY: '"1,2"'` - are
+ * left alone so this never double-quotes.
+ */
+function quoteIfNeeded(value) {
+  if (typeof value !== 'string') return value;
+  if (value.startsWith('"') && value.endsWith('"')) return value;
+  if (/\s|\$\(|@/.test(value)) {
+    return `"${value.replace(/"/g, '\\"')}"`;
+  }
+  return value;
 }
 
 /**
