@@ -18,11 +18,15 @@ const sharedRoot = path.resolve(projectRoot, '../../packages/shared');
 const config = {
   watchFolders: [sharedRoot],
   resolver: {
-    // A single copy of React and React Native: two copies break hooks and the bridge.
-    extraNodeModules: {
-      react: path.resolve(projectRoot, 'node_modules/react'),
-      'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
-    },
+    // Deliberately empty. This app is an npm workspace, so `react` and `react-native` are
+    // hoisted to the repository root and have no `apps/ios/node_modules` directory at all.
+    // An earlier version of this file set `extraNodeModules` to
+    // `apps/ios/node_modules/{react,react-native}`, which do not exist, and Metro honours
+    // that mapping over its own lookup - so the bundle died with
+    //   "react-native could not be found within the project or in these directories".
+    // Metro's default hierarchical lookup already walks up from this project root and finds
+    // the hoisted copy, and a hoisted install contains exactly one, so the "two copies break
+    // hooks" problem the override was meant to prevent cannot occur here.
   },
 };
 
