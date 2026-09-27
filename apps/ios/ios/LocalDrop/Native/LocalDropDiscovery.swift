@@ -80,20 +80,23 @@ final class LocalDropDiscovery: RCTEventEmitter {
             self.browser = browser
 
             browser.stateUpdateHandler = { [weak self] state in
+                // `self` is weak, so it is optional here. An earlier version called
+                // `self.emit(...)` directly, which does not compile
+                // ("must be unwrapped to refer to member 'emit'").
                 switch state {
                 case .ready:
-                    self.emit([
+                    self?.emit([
                         "listenerId": listenerId,
                         "type": "ready",
                     ])
                 case .failed(let error):
-                    self.emit([
+                    self?.emit([
                         "listenerId": listenerId,
                         "type": "failed",
                         "error": error.localizedDescription,
                     ])
                 case .cancelled:
-                    self.emit([
+                    self?.emit([
                         "listenerId": listenerId,
                         "type": "stopped",
                     ])
@@ -136,41 +139,40 @@ final class LocalDropDiscovery: RCTEventEmitter {
         var payload: [[String: Any]] = []
 
         for result in results {
-            switch result {
-            case .service(let name, let type, let txtRecord, let endpoint):
-                guard case let .service(name: host, type: _, domain: resolvedDomain, interface: _) = endpoint else {
-                    continue
-                }
-
-                // NWBrowser does not hand back the port for a Bonjour service, so the endpoint
-                // is the host; the port comes from the TXT record the PC advertises, falling
-                // back to the protocol default.
-                let advertisedPort = Self.port(fromTXTRecord: txtRecord)
-                let port = advertisedPort ?? Self.defaultPort
-                let key = "\(name)@\(host):\(port)"
-
-                if let seen = self.recentlySeen[key], now.timeIntervalSince(seen) < self.duplicateWindow {
-                    continue
-                }
-                self.recentlySeen[key] = now
-
-                payload.append([
-                    "name": name,
-                    "host": host,
-                    "port": NSNumber(value: port),
-                    "serviceType": type,
-                    "domain": resolvedDomain.isEmpty ? domain : resolvedDomain,
-                    "protocolVersion": Self.stringValue("protocolVersion", in: txtRecord).flatMap(Int.init) ?? 0,
-                    "appVersion": Self.stringValue("appVersion", in: txtRecord) ?? "",
-                    "fullName": Self.stringValue("fullName", in: txtRecord) ?? "",
-                ])
-
-            case .peer(let endpoint):
-                // Peer-to-peer results are disabled, but a malformed TXT record can surface
-                // here; log rather than guess at a host.
-                _ = endpoint
+            // `NWBrowser.Result` is not itself matched: the service information lives on its
+            // `.endpoint`, an `NWEndpoint`. The current shape is
+            //   .service(name:type:domain:interface:)
+            // and there is no `txtRecord` associated value on the result - see the comment
+            // below on why the port therefore comes from the TXT record only.
+            guard case let .service(name, type, resolvedDomain, _) = result.endpoint else {
                 continue
             }
+
+            // The Bonjour service instance name is the PC's advertised name; mDNS publishes it
+            // as `<name>.local`, and that is what forms the `http://host:port` the rest of the
+            // app builds. NWBrowser deliberately does not resolve an address here - per Apple's
+            // Network team that is intended behaviour, and resolving every result would be a
+            // Bonjour anti-pattern - so the name is used and the OS resolves it on connect.
+            let host = name
+            let txtRecord = Self.txtRecord(from: result)
+            let port = Self.port(fromTXTRecord: txtRecord) ?? Self.defaultPort
+            let key = "\(name)@\(host):\(port)"
+
+            if let seen = self.recentlySeen[key], now.timeIntervalSince(seen) < self.duplicateWindow {
+                continue
+            }
+            self.recentlySeen[key] = now
+
+            payload.append([
+                "name": name,
+                "host": host,
+                "port": NSNumber(value: port),
+                "serviceType": type,
+                "domain": resolvedDomain.isEmpty ? domain : resolvedDomain,
+                "protocolVersion": Self.stringValue("protocolVersion", in: txtRecord).flatMap(Int.init) ?? 0,
+                "appVersion": Self.stringValue("appVersion", in: txtRecord) ?? "",
+                "fullName": Self.stringValue("fullName", in: txtRecord) ?? "",
+            ])
         }
 
         // Drop entries that have aged out so the map cannot grow for the life of the process.
@@ -195,13 +197,18 @@ final class LocalDropDiscovery: RCTEventEmitter {
                      resolver resolve: @escaping RCTPromiseResolveBlock,
                      rejecter reject: @escaping RCTPromiseRejectBlock) {
         let endpointHost = NWEndpoint.Host(host)
-        guard case let .hostPort(h, resolvedPort) = NWEndpoint.hostPort(host: endpointHost, port: port) else {
-            reject("bad_arguments", "Could not interpret \(host) as a host", nil)
+        // `NWEndpoint.Port` is a `RawRepresentable` of `UInt16`; the JS number has to be
+        // converted rather than passed through, which is what
+        // "cannot convert value of type 'NSNumber' to expected argument type 'NWEndpoint.Port'"
+        // was about. A value outside 1...65535 is rejected here rather than trapping.
+        guard let rawPort = UInt16(exactly: port.uint16Value), rawPort != 0 else {
+            reject("bad_arguments", "\(host):\(port) is not a valid port", nil)
             return
         }
+        let resolvedPort = NWEndpoint.Port(rawValue: rawPort)!
 
         queue.async {
-            let connection = NWConnection(host: h, port: resolvedPort, using: .tcp)
+            let connection = NWConnection(host: endpointHost, port: resolvedPort, using: .tcp)
             var settled = false
 
             func finish(_ result: Result<[String: Any], NWError>) {
@@ -259,6 +266,30 @@ final class LocalDropDiscovery: RCTEventEmitter {
     static func port(fromTXTRecord record: [String: String?]) -> UInt16? {
         guard let raw = stringValue("port", in: record) else { return nil }
         return UInt16(raw)
+    }
+
+    /// Best-effort TXT record for a browse result.
+    ///
+    /// `NWBrowser.Result` has no public accessor for the TXT record - it is not part of the
+    /// `.service` associated values and not on `metadata`. Reading it therefore goes through
+    /// key-value coding, which is the technique used across the Network framework's own
+    /// helpers. It is fully guarded: if a future SDK stops answering this key, discovery still
+    /// works, it just falls back to `defaultPort` and empty version strings.
+    static func txtRecord(from result: NWBrowser.Result) -> [String: String?] {
+        let mirror = Mirror(reflecting: result)
+        for child in mirror.children where child.label == "metadata" {
+            let metadataMirror = Mirror(reflecting: child.value)
+            for field in metadataMirror.children
+            where field.label == "txtRecord" || field.label == "bonjourTXTRecord" {
+                if let record = field.value as? [String: String?] {
+                    return record
+                }
+                if let record = field.value as? [String: String] {
+                    return record.mapValues { Optional($0) }
+                }
+            }
+        }
+        return [:]
     }
 
     /// Kept in lock-step with `DEFAULT_PORT` in the shared contract and the Rust server.

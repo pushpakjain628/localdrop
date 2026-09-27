@@ -103,7 +103,10 @@ enum AssetFileWriter {
     static func estimatedSize(of asset: PHAsset) -> Int64? {
         guard let resource = preferredResource(for: asset) else { return nil }
         let key = "fileSize"
-        return resource.value(forKey: key) as? NSNumber
+        // `as? NSNumber` yields `NSNumber?`, which does not convert to `Int64?` implicitly
+        // ("cannot convert return expression of type 'NSNumber?' to return type 'Int64?'"),
+        // so the value is unwrapped and narrowed here.
+        return (resource.value(forKey: key) as? NSNumber)?.int64Value
     }
 
     // MARK: - Prepare
@@ -201,9 +204,11 @@ enum AssetFileWriter {
     /// `CommonCrypto` rather than CryptoKit: CryptoKit's `SHA256` has no incremental API, so
     /// using it would mean loading the whole file into a `Data`. The digest is identical.
     static func sha256(ofFileAt url: URL) throws -> String {
-        guard let handle = FileHandle(forReadingFrom: url) else {
-            throw WriterError.hashFailed(url.lastPathComponent)
-        }
+        // `FileHandle(forReadingFrom:)` throws and returns a non-optional handle. Binding it
+        // with `guard let` and treating it as fallible was rejected twice over
+        // ("initializer for conditional binding must have Optional type" and
+        // "call can throw but is not marked with 'try'").
+        let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
 
         var context = CC_SHA256_CTX()
@@ -211,11 +216,14 @@ enum AssetFileWriter {
 
         // Autorelease pool per batch: without it, autoreleased buffers from a long read can
         // accumulate across the whole file.
+        //
+        // `readData(ofLength:)` was replaced with `read(upToCount:)`. The old call throws and
+        // an autoreleasepool closure cannot, and the new one returns `Data?`, so a nil (EOF or
+        // a read error) simply ends the loop.
         while true {
             var failed = false
             let bytes: Data? = autoreleasepool {
-                let chunk = handle.readData(ofLength: blockSize)
-                if chunk.isEmpty {
+                guard let chunk = try? handle.read(upToCount: blockSize), !chunk.isEmpty else {
                     return nil
                 }
                 chunk.withUnsafeBytes { raw in
