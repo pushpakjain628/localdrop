@@ -232,35 +232,111 @@ fn enumerate_ipv4_addresses() -> Vec<String> {
     parse_ipv4_addresses(&String::from_utf8_lossy(&output.stdout))
 }
 
-/// Pulls usable IPv4 addresses out of `ipconfig` output.
+/// Pulls the IPv4 addresses a phone could actually reach, out of `ipconfig` output.
 ///
 /// Split out from the process call so it can be tested: the only bug this ever had was in
 /// parsing, and it shipped because the parsing was unreachable from a test.
+///
+/// **Only adapters with a default gateway are reported.** This matters more than it looks. A
+/// developer machine typically has a virtual adapter too - VirtualBox, WSL, Hyper-V, Docker -
+/// and those have an address but no route off the host. Offering one to the user is worse than
+/// offering none: they type it into the phone, it times out, and the app looks broken when the
+/// real address was on screen the whole time. A gateway is the reliable signal for "this adapter
+/// is on a network the phone could share".
+///
+/// If nothing has a gateway - genuinely offline, or an unusual configuration - every non-loopback
+/// address is returned rather than nothing, because a wrong guess still beats a blank field.
 fn parse_ipv4_addresses(text: &str) -> Vec<String> {
-    text.lines()
-        .filter_map(|line| {
-            let line = line.trim();
-            let rest = line.strip_prefix("IPv4 Address.")?;
-            // The label is padded with dot leaders before the colon, so a real line reads
-            // `   IPv4 Address. . . . . . . . . . . . : 192.168.1.7` and leaves
-            // ` . . . . . . . . . . . : 192.168.1.7` here. Taking the first
-            // whitespace-separated token therefore returned a bare "." and logged
-            // `http://.:47821` for every adapter, which is not an address a phone can be told
-            // to use. The address is whatever follows the last colon.
-            let value = rest.rsplit(':').next()?.trim();
-            if value.is_empty() {
-                return None;
-            }
-            // Skip loopback and link-local; neither is reachable from a phone.
-            if value.starts_with("127.") || value.starts_with("169.254.") {
-                None
-            } else {
-                Some(value.to_string())
-            }
-        })
-        .collect()
+    let mut routed: Vec<String> = Vec::new();
+    let mut unrouted: Vec<String> = Vec::new();
+
+    for block in adapter_blocks(text) {
+        let Some(address) = block_ipv4_address(&block) else {
+            continue;
+        };
+        if has_default_gateway(&block) {
+            routed.push(address);
+        } else {
+            unrouted.push(address);
+        }
+    }
+
+    if routed.is_empty() {
+        unrouted
+    } else {
+        routed
+    }
 }
 
+/// Splits `ipconfig` output into one chunk per adapter.
+///
+/// Adapters are separated by a blank line, and the output is CRLF, so this goes line by line
+/// rather than splitting on a fixed newline sequence.
+fn adapter_blocks(text: &str) -> Vec<Vec<&str>> {
+    let mut blocks: Vec<Vec<&str>> = Vec::new();
+    let mut current: Vec<&str> = Vec::new();
+
+    for line in text.lines() {
+        if line.trim().is_empty() {
+            if !current.is_empty() {
+                blocks.push(std::mem::take(&mut current));
+            }
+            continue;
+        }
+        current.push(line);
+    }
+    if !current.is_empty() {
+        blocks.push(current);
+    }
+    blocks
+}
+
+/// The adapter's IPv4 address, if it has a usable one.
+///
+/// The label is padded with dot leaders before the colon, so a real line reads
+/// `   IPv4 Address. . . . . . . . . . . . : 192.168.1.7`. Taking the first
+/// whitespace-separated token returns a bare "." - which is how this once logged `http://.:47821`
+/// for every adapter. The address is whatever follows the last colon.
+fn block_ipv4_address(block: &[&str]) -> Option<String> {
+    let line = block
+        .iter()
+        .map(|line| line.trim())
+        .find(|line| line.starts_with("IPv4 Address."))?;
+    let value = line.split_once(':')?.1.trim();
+    if value.is_empty() {
+        return None;
+    }
+    // Skip loopback and link-local; neither is reachable from a phone.
+    if value.starts_with("127.") || value.starts_with("169.254.") {
+        return None;
+    }
+    Some(value.to_string())
+}
+/// True when the adapter is connected *and* has a usable default gateway.
+///
+/// Both matter. A disconnected adapter still reports a default gateway, on its own line, next to
+/// a media-state line reading `Media State disconnected` - so a gateway alone is not evidence that
+/// anything is plugged in. A connected adapter with no gateway is a link with no route, which is
+/// the virtual-adapter case all over again.
+fn has_default_gateway(block: &[&str]) -> bool {
+    let disconnected = block.iter().any(|line| {
+        let line = line.trim();
+        line.starts_with("Media State") && line.to_ascii_lowercase().contains("disconnected")
+    });
+    if disconnected {
+        return false;
+    }
+
+    block.iter().any(|line| {
+        let line = line.trim();
+        if !line.starts_with("Default Gateway") {
+            return false;
+        }
+        line.split_once(':')
+            .map(|(_, value)| !value.trim().is_empty())
+            .unwrap_or(false)
+    })
+}
 /// Prepares the library directory and sweeps abandoned staging files at startup.
 pub async fn prepare_storage(state: &SharedState) -> Result<(), String> {
     let root = state.backup_dir();
@@ -288,9 +364,10 @@ pub fn server_port() -> u16 {
 mod tests {
     use super::*;
 
-    /// Trimmed from a real `ipconfig` on a machine with a wired and a Wi-Fi adapter. The dot
-    /// leaders before the colon are the whole point: they are what made the previous parser
-    /// return "." for every adapter.
+    /// Trimmed from a real `ipconfig` on a machine with a VirtualBox host-only adapter, Wi-Fi and
+    /// loopback. Two things are pinned down here: the dot leaders before the colon, which once made
+    /// the parser return "." for every adapter; and the virtual adapter, which has an address but
+    /// no route off the host.
     const IPCONFIG: &str = r"
 Windows IP Configuration
 
@@ -314,10 +391,62 @@ Loopback Pseudo-Interface 1:
 ";
 
     #[test]
-    fn the_address_is_the_text_after_the_last_colon_not_the_dot_leader() {
+    fn a_virtual_adapter_with_no_gateway_is_not_offered_to_the_user() {
+        // The reported failure: the dashboard showed 192.168.56.1, a VirtualBox host-only
+        // adapter; the user typed it into the phone; the phone timed out - while the address that
+        // would have worked sat in the same field.
         assert_eq!(
             parse_ipv4_addresses(IPCONFIG),
-            vec!["192.168.56.1".to_string(), "192.168.1.7".to_string()]
+            vec!["192.168.1.7".to_string()],
+            "only the adapter on a real network should be offered"
+        );
+    }
+
+    #[test]
+    fn the_address_is_the_text_after_the_colon_not_the_dot_leader() {
+        // The dot-leader parsing itself, isolated from the gateway rule.
+        let block = ["   IPv4 Address. . . . . . . . . . . . : 192.168.1.7"];
+        assert_eq!(block_ipv4_address(&block), Some("192.168.1.7".to_string()));
+    }
+
+    #[test]
+    fn a_disconnected_ethernet_port_is_not_treated_as_a_network() {
+        // Windows keeps reporting a default gateway with the cable out, on its own line, next to
+        // a media-state line. Offering that address would repeat the virtual-adapter mistake.
+        let block = [
+            "   Media State . . . . . . . . . . . . : Media State disconnected",
+            "   IPv4 Address. . . . . . . . . . . . : 10.0.0.5",
+            "   Default Gateway . . . . . . . . . . . : 10.0.0.1",
+        ];
+        assert!(!has_default_gateway(&block));
+
+        // Alongside a working Wi-Fi, it is filtered out. On its own it is still offered, because
+        // the fallback exists for a genuinely offline machine and a blank field is worse than a
+        // guess.
+        let mixed = "Ethernet adapter Ethernet:\n\n   Media State . . . . . . . . . . . . : Media State disconnected\n   IPv4 Address. . . . . . . . . . . . : 10.0.0.5\n   Default Gateway . . . . . . . . . . . : 10.0.0.1\n\nWireless LAN adapter Wi-Fi:\n\n   IPv4 Address. . . . . . . . . . . . : 192.168.1.7\n   Default Gateway . . . . . . . . . . : 192.168.1.1\n";
+        assert_eq!(parse_ipv4_addresses(mixed), vec!["192.168.1.7".to_string()]);
+    }
+
+    #[test]
+    fn with_no_gateway_at_all_every_usable_address_is_still_offered() {
+        // Offline, or an unusual configuration. A wrong guess beats a blank field, and blank is
+        // indistinguishable from "no network hardware".
+        let offline =
+            "Ethernet adapter Ethernet:\n\n   IPv4 Address. . . . . . . . . . . . : 192.168.56.1\n";
+        assert_eq!(
+            parse_ipv4_addresses(offline),
+            vec!["192.168.56.1".to_string()]
+        );
+    }
+
+    #[test]
+    fn both_routed_adapters_are_offered_when_there_are_two() {
+        // A desktop with wired and Wi-Fi on separate networks is a real case, and either may be
+        // the one the phone shares. Both are genuine, so neither is hidden.
+        let two_routed = "Ethernet adapter Ethernet:\n\n   IPv4 Address. . . . . . . . . . . . : 10.0.0.5\n   Default Gateway . . . . . . . . . . : 10.0.0.1\n\nWireless LAN adapter Wi-Fi:\n\n   IPv4 Address. . . . . . . . . . . . : 192.168.1.7\n   Default Gateway . . . . . . . . . . : 192.168.1.1\n";
+        assert_eq!(
+            parse_ipv4_addresses(two_routed),
+            vec!["10.0.0.5".to_string(), "192.168.1.7".to_string()]
         );
     }
 
