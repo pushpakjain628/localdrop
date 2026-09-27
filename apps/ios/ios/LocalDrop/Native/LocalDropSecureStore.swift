@@ -57,7 +57,9 @@ final class LocalDropSecureStore: NSObject {
     }
 
     /// Reads a value, resolving to `null` when the item does not exist.
-    @objc(getValue:forKey:resolver:rejecter:)
+    /// The selector matches the header's `getValue:resolver:rejecter:` (3 pieces); an earlier
+    /// `getValue:forKey:...` declared 4 for a 3-parameter method, which does not compile.
+    @objc(getValue:resolver:rejecter:)
     func getValue(_ key: String,
                   resolver resolve: @escaping RCTPromiseResolveBlock,
                   rejecter _: @escaping RCTPromiseRejectBlock) {
@@ -84,7 +86,7 @@ final class LocalDropSecureStore: NSObject {
         }
     }
 
-    @objc(removeValue:forKey:resolver:rejecter:)
+    @objc(removeValue:resolver:rejecter:)
     func removeValue(_ key: String,
                      resolver resolve: @escaping RCTPromiseResolveBlock,
                      rejecter _: @escaping RCTPromiseRejectBlock) {

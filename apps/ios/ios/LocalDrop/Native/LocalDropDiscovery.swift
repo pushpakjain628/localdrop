@@ -52,7 +52,7 @@ final class LocalDropDiscovery: RCTEventEmitter {
     ///
     /// Resolves with immediately; results arrive as `LocalDropDiscoveryEvent` messages so the
     /// device list fills in progressively rather than after a fixed delay.
-    @objc(startBrowsing:rejecter:)
+    @objc(startBrowsing:resolver:rejecter:)
     func startBrowsing(_ options: NSDictionary,
                        resolver resolve: @escaping RCTPromiseResolveBlock,
                        rejecter _: @escaping RCTPromiseRejectBlock) {

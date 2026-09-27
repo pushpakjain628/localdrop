@@ -153,7 +153,7 @@ final class LocalDropTransfer: RCTEventEmitter {
         }
     }
 
-    @objc(cancelUpload:rejecter:)
+    @objc(cancelUpload:resolver:rejecter:)
     func cancelUpload(_ transferId: String,
                       resolver resolve: @escaping RCTPromiseResolveBlock,
                       rejecter _: RCTPromiseRejectBlock) {
@@ -171,7 +171,7 @@ final class LocalDropTransfer: RCTEventEmitter {
     // MARK: - Housekeeping
 
     /// Deletes a prepared file once its transfer is finished.
-    @objc(discardPreparedFile:rejecter:)
+    @objc(discardPreparedFile:resolver:rejecter:)
     func discardPreparedFile(_ path: String,
                              resolve: RCTPromiseResolveBlock,
                              rejecter _: RCTPromiseRejectBlock) {

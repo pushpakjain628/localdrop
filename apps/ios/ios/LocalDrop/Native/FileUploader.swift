@@ -53,7 +53,10 @@ final class FileUploader: NSObject {
         let task: URLSessionUploadTask
         var collected = Data()
         var response: HTTPURLResponse?
-        var completion: ((Result<UploadError>) -> Void)?
+        // `Swift.Result<UploadError, FileUploader.Result>`: an unqualified `Result` here binds
+        // to the enclosing `FileUploader.Result` struct, which is not generic, so
+        // `Result<UploadError>` was rejected with "cannot specialize non-generic type".
+        var completion: ((Swift.Result<UploadError, FileUploader.Result>) -> Void)?
         var onProgress: ((Progress) -> Void)?
 
         private var lastEmit: TimeInterval = 0
@@ -124,8 +127,11 @@ final class FileUploader: NSObject {
         func urlSession(_ session: URLSession,
                         task: URLSessionTask,
                         didCompleteWithError error: Error?) {
+            // `Swift.Result` is spelled out because, from inside this nested class, an
+            // unqualified `Result` binds to the enclosing `FileUploader.Result` (a plain
+            // struct, not generic), which made `Result<UploadError>.failure` fail to compile.
             let finish: (UploadError?) -> Void = { failure in
-                self.completion?(failure.map { Result<UploadError>.failure($0) }
+                self.completion?(failure.map { Swift.Result<UploadError, FileUploader.Result>.failure($0) }
                     ?? .success(self.result()))
             }
             if let error = error as? URLError, error.code == .cancelled {
@@ -154,7 +160,7 @@ final class FileUploader: NSObject {
 
     /// A per-host session. `waitsForConnectivity` matters on Wi-Fi: without it a transfer that
     /// starts while the phone is still associating fails instantly instead of waiting.
-    init() {
+    override init() {
         let configuration = URLSessionConfiguration.default
         configuration.waitsForConnectivity = true
         configuration.timeoutIntervalForRequest = 60
@@ -173,15 +179,20 @@ final class FileUploader: NSObject {
     }
 
     /// Uploads `filePath` to `url` and reports progress.
+    ///
+    /// The completion receives `Swift.Result<UploadError, Result>`: the failure side carries an
+    /// `UploadError` so `LocalDropTransfer` can reject the JS promise with a real reason, and
+    /// the success side carries the HTTP `Result`. It is spelled `Swift.Result` because, in this
+    /// file, a bare `Result` means the nested `FileUploader.Result` struct.
     func upload(transferId: String,
                 filePath: String,
                 to url: URL,
                 method: String,
                 headers: [String: String],
                 onProgress: @escaping (Progress) -> Void,
-                completion: @escaping (Result) -> Void) {
+                completion: @escaping (Swift.Result<UploadError, Result>) -> Void) {
         guard FileManager.default.fileExists(atPath: filePath) else {
-            completion(Result(statusCode: 0, body: Data()))
+            completion(.failure(.fileMissing(filePath)))
             return
         }
 
