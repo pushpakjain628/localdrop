@@ -60,7 +60,11 @@ final class FileUploader: NSObject {
         var completion: ((Swift.Result<FileUploader.Result, UploadError>) -> Void)?
         var onProgress: ((Progress) -> Void)?
 
-        private var lastEmit: TimeInterval = 0
+        // A `Date`, not a `TimeInterval`: the throttle below is `now.timeIntervalSince(lastEmit)`,
+        // and that overload takes a `Date`. A `TimeInterval` field paired with
+        // `timeIntervalSince1970` assigned into it did not compile ("cannot convert value of
+        // type 'TimeInterval' to expected argument type 'Date'").
+        private var lastEmit: Date?
         private var startedAt: Date?
         private let emitInterval: TimeInterval
 
@@ -82,9 +86,9 @@ final class FileUploader: NSObject {
             let now = Date()
             if startedAt == nil { startedAt = now }
             // Throttle: a fast upload would otherwise emit hundreds of events per second, each
-            // one a bridge crossing and a React render.
-            guard now.timeIntervalSince(lastEmit) >= emitInterval else { return }
-            lastEmit = now.timeIntervalSince1970
+            // one a bridge crossing and a React render. The first tick always emits.
+            if let lastEmit, now.timeIntervalSince(lastEmit) < emitInterval { return }
+            lastEmit = now
 
             let total = totalBytesExpectedToSend > 0 ? totalBytesExpectedToSend : 0
             let fraction = total > 0 ? min(Double(totalBytesSent) / Double(total), 1) : 0
