@@ -3,6 +3,7 @@
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 
+use axum::http::HeaderValue;
 use axum::routing::{get, post, put};
 use axum::Router;
 use tower_http::cors::CorsLayer;
@@ -15,6 +16,25 @@ use crate::transfers::SharedState;
 use super::middleware;
 use super::routes;
 
+/// Origins the dashboard webview is served from.
+///
+/// The iPhone is a native client and sends no `Origin`, so for the phone there is no cross-origin
+/// scenario to permit. The dashboard is a webview, and it *is* cross-origin to this server:
+/// `http://localhost:1420` under `tauri dev`, and the Tauri custom-protocol origin in a bundled
+/// build. Without these the browser rejects the preflight, every request fails with `ERR_FAILED`,
+/// and the dashboard reports "server unreachable" - which is indistinguishable from a wrong URL,
+/// and is how this looked.
+///
+/// An explicit list, never `Any`. This server is reachable by everything on the LAN, and an open
+/// policy would let any web page the user visits read the dashboard token. These are the only
+/// origins the app is ever served from, and the dashboard routes stay protected by that token plus
+/// a loopback-only check.
+const DASHBOARD_ORIGINS: [&str; 3] = [
+    "http://localhost:1420",
+    "tauri://localhost",
+    "http://tauri.localhost",
+];
+
 /// Assembles the router.
 ///
 /// The three groups make the security model visible in one place:
@@ -26,10 +46,19 @@ use super::routes;
 ///
 /// Adding a route to the wrong group is visible here rather than buried in a handler.
 pub fn build_router(state: SharedState) -> Router {
-    // The phone is a native client, not a browser, so there is no cross-origin scenario to
-    // permit. A permissive policy would only widen the attack surface for a server that is
-    // reachable by everything on the LAN.
+    // The phone is a native client, so there is no cross-origin scenario to permit for it. The
+    // dashboard, however, is a webview on a different origin and needs its own origins allowed -
+    // see `DASHBOARD_ORIGINS`. It is a fixed list rather than `Any` because a permissive policy
+    // would widen the attack surface for a server that is reachable by everything on the LAN.
     let cors = CorsLayer::new()
+        .allow_origin(
+            DASHBOARD_ORIGINS
+                .iter()
+                .map(|origin| {
+                    HeaderValue::from_str(origin).expect("DASHBOARD_ORIGINS must be valid headers")
+                })
+                .collect::<Vec<_>>(),
+        )
         .allow_methods(tower_http::cors::Any)
         .allow_headers(tower_http::cors::Any)
         .max_age(std::time::Duration::from_secs(600));
@@ -162,12 +191,28 @@ pub fn local_ipv4_addresses() -> Vec<String> {
     let Ok(output) = command.output() else {
         return Vec::new();
     };
-    let text = String::from_utf8_lossy(&output.stdout);
+    parse_ipv4_addresses(&String::from_utf8_lossy(&output.stdout))
+}
+
+/// Pulls usable IPv4 addresses out of `ipconfig` output.
+///
+/// Split out from the process call so it can be tested: the only bug this ever had was in
+/// parsing, and it shipped because the parsing was unreachable from a test.
+fn parse_ipv4_addresses(text: &str) -> Vec<String> {
     text.lines()
         .filter_map(|line| {
             let line = line.trim();
             let rest = line.strip_prefix("IPv4 Address.")?;
-            let value = rest.split('(').next()?.split_whitespace().next()?;
+            // The label is padded with dot leaders before the colon, so a real line reads
+            // `   IPv4 Address. . . . . . . . . . . . : 192.168.1.7` and leaves
+            // ` . . . . . . . . . . . : 192.168.1.7` here. Taking the first
+            // whitespace-separated token therefore returned a bare "." and logged
+            // `http://.:47821` for every adapter, which is not an address a phone can be told
+            // to use. The address is whatever follows the last colon.
+            let value = rest.rsplit(':').next()?.trim();
+            if value.is_empty() {
+                return None;
+            }
             // Skip loopback and link-local; neither is reachable from a phone.
             if value.starts_with("127.") || value.starts_with("169.254.") {
                 None
@@ -199,4 +244,69 @@ pub fn server_port() -> u16 {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(DEFAULT_PORT)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Trimmed from a real `ipconfig` on a machine with a wired and a Wi-Fi adapter. The dot
+    /// leaders before the colon are the whole point: they are what made the previous parser
+    /// return "." for every adapter.
+    const IPCONFIG: &str = r"
+Windows IP Configuration
+
+Ethernet adapter Ethernet:
+
+   Connection-specific DNS Suffix  . :
+   Link-local IPv6 Address . . . . . : fe80::1
+   IPv4 Address. . . . . . . . . . . . : 192.168.56.1
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+
+Wireless LAN adapter Wi-Fi:
+
+   Connection-specific DNS Suffix  . :
+   IPv4 Address. . . . . . . . . . . . : 192.168.1.7
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 192.168.1.1
+
+Loopback Pseudo-Interface 1:
+
+   IPv4 Address. . . . . . . . . . . . : 127.0.0.1
+";
+
+    #[test]
+    fn the_address_is_the_text_after_the_last_colon_not_the_dot_leader() {
+        assert_eq!(
+            parse_ipv4_addresses(IPCONFIG),
+            vec!["192.168.56.1".to_string(), "192.168.1.7".to_string()]
+        );
+    }
+
+    #[test]
+    fn every_returned_address_is_something_a_phone_could_be_told() {
+        for address in parse_ipv4_addresses(IPCONFIG) {
+            assert!(!address.is_empty(), "an empty host is not an address");
+            assert!(!address.starts_with("127."), "loopback: {address}");
+            assert!(!address.starts_with("169.254."), "link-local: {address}");
+            assert_eq!(
+                address.split('.').count(),
+                4,
+                "not an IPv4 address: {address}"
+            );
+            assert!(
+                address.chars().all(|c| c.is_ascii_digit() || c == '.'),
+                "not an IPv4 address: {address}"
+            );
+        }
+    }
+
+    #[test]
+    fn ipv6_and_subnet_lines_are_not_mistaken_for_addresses() {
+        // Only the `IPv4 Address.` prefix is a match, so IPv6 and the other dot-leader lines
+        // must be ignored rather than partially parsed.
+        assert!(parse_ipv4_addresses("   Link-local IPv6 Address . . . : fe80::1\n").is_empty());
+        assert!(parse_ipv4_addresses("   Subnet Mask . . . . . . . : 255.255.255.0\n").is_empty());
+        assert!(parse_ipv4_addresses("").is_empty());
+    }
 }

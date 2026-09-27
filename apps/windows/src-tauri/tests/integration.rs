@@ -10,7 +10,7 @@
 use std::sync::Arc;
 
 use axum::body::Body;
-use axum::http::{Method, Request, StatusCode};
+use axum::http::{HeaderValue, Method, Request, StatusCode};
 use axum::response::Response;
 use http_body_util::BodyExt;
 use localdrop_server_lib::http::middleware::DASHBOARD_TOKEN_HEADER;
@@ -480,6 +480,119 @@ async fn every_dashboard_route_requires_the_launch_token() {
             "{method} {uri} must not accept a phone token"
         );
     }
+}
+
+#[tokio::test]
+async fn the_dashboard_origin_is_allowed_so_its_preflight_succeeds() {
+    // The dashboard is a webview on a different origin from this server, and its requests carry
+    // custom headers, so the browser preflights every one of them. Without an
+    // `Access-Control-Allow-Origin` on the preflight the browser rejects the real request with
+    // `ERR_FAILED` and the dashboard reports "server unreachable" - which looks exactly like a
+    // wrong port, and cost a long detour to diagnose.
+    let h = harness();
+    for origin in [
+        "http://localhost:1420",
+        "tauri://localhost",
+        "http://tauri.localhost",
+    ] {
+        let response = send(
+            &h.state,
+            Request::builder()
+                .method(Method::OPTIONS)
+                .uri("/api/health")
+                .header("Origin", origin)
+                .header("Access-Control-Request-Method", "GET")
+                .header(
+                    "Access-Control-Request-Headers",
+                    "content-type,x-localdrop-protocol",
+                )
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await;
+
+        assert_eq!(
+            response.headers().get("access-control-allow-origin"),
+            Some(&HeaderValue::from_static(origin)),
+            "the preflight for {origin} must be allowed, or the dashboard cannot call the server"
+        );
+    }
+}
+
+#[tokio::test]
+async fn an_unrelated_web_page_may_not_read_the_dashboard() {
+    // The allow-list is the only thing stopping a page the user happens to be browsing from
+    // reading this LAN-reachable server, so it has to actually reject other origins rather than
+    // mirroring whatever `Origin` arrives.
+    let h = harness();
+    let response = send(
+        &h.state,
+        Request::builder()
+            .method(Method::OPTIONS)
+            .uri("/api/health")
+            .header("Origin", "https://example.com")
+            .header("Access-Control-Request-Method", "GET")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert!(
+        response
+            .headers()
+            .get("access-control-allow-origin")
+            .is_none(),
+        "an arbitrary origin must not be granted access"
+    );
+}
+
+#[tokio::test]
+async fn allowing_the_dashboard_origin_does_not_weaken_authentication() {
+    // CORS decides whether a browser may *read* a response. It must not become a way around the
+    // per-launch token: an allowed origin with no credential is still rejected.
+    let h = harness();
+    let response = send(
+        &h.state,
+        Request::builder()
+            .method(Method::GET)
+            .uri("/api/stats")
+            .header("Origin", "http://localhost:1420")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "an allowed origin must still need the dashboard token"
+    );
+}
+
+#[tokio::test]
+async fn a_phone_request_carries_no_origin_and_is_unaffected() {
+    // The iPhone is a native client: no `Origin`, so no CORS negotiation at all, and the public
+    // routes must keep working exactly as they did before the policy was added.
+    let h = harness();
+    let response = send(
+        &h.state,
+        Request::builder()
+            .method(Method::GET)
+            .uri("/api/health")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "a request with no Origin must not be turned away by the CORS layer"
+    );
+    assert!(
+        response
+            .headers()
+            .get("access-control-allow-origin")
+            .is_none(),
+        "there is no origin to allow"
+    );
 }
 
 #[tokio::test]

@@ -15,7 +15,7 @@ import type {
   RotatePairingCodeResponse,
   ServerSettingsResponse,
 } from '@localdrop/shared';
-import { API_PREFIX, DEFAULT_PORT, PROTOCOL_VERSION } from '@localdrop/shared';
+import { API_PREFIX, PROTOCOL_VERSION } from '@localdrop/shared';
 
 /** Must match `DASHBOARD_TOKEN_HEADER` in `src-tauri/src/http/middleware.rs`. */
 const DASHBOARD_TOKEN_HEADER = 'x-localdrop-dashboard';
@@ -54,7 +54,25 @@ export interface PairedDevicesResponse {
 export class LocalDropApi {
   private token: string | null = null;
 
-  constructor(private readonly baseUrl: string = '') {}
+  /**
+   * Absolute base URL of the backup server, e.g. `http://127.0.0.1:47821`.
+   *
+   * Required rather than defaulting to empty on purpose. An empty base makes every request
+   * relative, which resolves against whatever origin the page happens to be on: the Vite dev
+   * server on `:1420` during `tauri dev`, and `tauri://localhost` in a bundled build. Neither is
+   * the backup server, and because Vite's SPA fallback answers an unknown path with
+   * `index.html` and a 200, the requests *succeeded* and returned HTML. `safeParse` turned that
+   * into `{ error: ... }`, which is non-null, so it sailed past the `X | null` prop types and
+   * every card in the dashboard threw on a missing field - a white window rather than an error.
+   */
+  constructor(private readonly baseUrl: string) {
+    if (!/^https?:\/\//.test(baseUrl)) {
+      throw new Error(
+        `LocalDropApi needs an absolute server URL, got "${baseUrl}". ` +
+          'A relative URL resolves against the page origin, not the backup server.',
+      );
+    }
+  }
 
   /** Fetches and caches this launch's dashboard token. Safe to call repeatedly. */
   async authenticate(): Promise<void> {
@@ -166,9 +184,10 @@ export class LocalDropApi {
   /** URL of the live event stream. The token travels as a query parameter because a browser
    *  `WebSocket` cannot set request headers. */
   eventStreamUrl(): string {
-    const wsBase = this.baseUrl
-      ? this.baseUrl.replace(/^http/, 'ws')
-      : `ws://127.0.0.1:${DEFAULT_PORT}`;
+    if (!this.token) {
+      throw new Error('eventStreamUrl() called before authenticate()');
+    }
+    const wsBase = this.baseUrl.replace(/^http/, 'ws');
     return `${wsBase}${API_PREFIX}/events${query({ token: this.token })}`;
   }
 }
@@ -209,5 +228,13 @@ function query(params: Record<string, string | number | null | undefined>): stri
   return encoded.length > 0 ? `?${encoded}` : '';
 }
 
-/** Shared instance used by the dashboard. */
-export const api = new LocalDropApi();
+/**
+ * Shared instance used by the dashboard.
+ *
+ * `__LOCALDROP_SERVER_PORT__` is compiled in by `vite.config.ts` from the same source the Rust
+ * side reads - the `LOCALDROP_PORT` environment variable, falling back to the shared
+ * `DEFAULT_PORT` - so a non-default port cannot leave the window talking to nothing.
+ */
+declare const __LOCALDROP_SERVER_PORT__: number;
+
+export const api = new LocalDropApi(`http://127.0.0.1:${__LOCALDROP_SERVER_PORT__}`);
