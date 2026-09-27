@@ -8,15 +8,15 @@
 
 /* Begin PBXBuildFile section */
 		0C80B921A6F3F58F76C31292 /* libPods-LocalDrop.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-LocalDrop.a */; };
-		3A593166E17D476990E4BD16 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18FCF9AB33E54E0F8F9EF9D9 /* AppDelegate.swift */; };
-		28E912D0E2084DD1B7EA180F /* LocalDropPhotos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8150F3F4AF48C98155663C /* LocalDropPhotos.swift */; };
-		DA2AC77173B84179A4A1D254 /* LocalDropTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10587B0777A94F3E86FEF7E7 /* LocalDropTransfer.swift */; };
-		EC74DB4A918E4069B645BFB5 /* LocalDropDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40A71D4FDB33407997BF8852 /* LocalDropDiscovery.swift */; };
-		1C13330D3C9E4BF59C3A5147 /* LocalDropSecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCF3561594BB4028B4451AEA /* LocalDropSecureStore.swift */; };
-		6A1DE8EB72064BB1BA3A74AA /* AssetFileWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC27A29171784AB9ACA61DE8 /* AssetFileWriter.swift */; };
-		692C806CB16C403E90518A35 /* FileUploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EC41A55A76A45C19D35475F /* FileUploader.swift */; };
-		6AAF6BE3610748408445D42A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AD8063307B7B46639F0350F6 /* Assets.xcassets */; };
-		8C86947E38D84FB2878CD670 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0DFC9FCE4C254197A01A2150 /* LaunchScreen.storyboard */; };
+		C1F7EF82C6A24315A362A8E5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AE1F2C578E8418BA924A2EC /* AppDelegate.swift */; };
+		CA7596FD4B4044478E9987C9 /* LocalDropPhotos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C215DB7561E40859483EB23 /* LocalDropPhotos.swift */; };
+		7B5EED073CC04B2BBAA3160F /* LocalDropTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42FD55F9D8664D34BBFAC70B /* LocalDropTransfer.swift */; };
+		8FAA32759D774560BC2E6DC1 /* LocalDropDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F399E67B1142629125610E /* LocalDropDiscovery.swift */; };
+		E03A5F7CF4E94A7F8DA5D9D0 /* LocalDropSecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3573490E642379C2D66F1 /* LocalDropSecureStore.swift */; };
+		4AA7B1DF877D4EDB8CB5EA20 /* AssetFileWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE5669F44E648338E5DC1D1 /* AssetFileWriter.swift */; };
+		6B332C50B0CE4A14BCF77EB5 /* FileUploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8653714BEEED41C9BCB98E50 /* FileUploader.swift */; };
+		C9A60F224ED344EC947C8DA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4464A545F8274D5FA1E53A09 /* Assets.xcassets */; };
+		94956BE7B02F44CBB16F9855 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AE2BCF6C06FA40A390E6F3D8 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,17 +41,17 @@
 		5DCACB8F33CDC322A6C60F78 /* libPods-LocalDrop.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-LocalDrop.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		89C6BE57DB24E9ADA2F236DE /* Pods-LocalDrop-LocalDropTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocalDrop-LocalDropTests.release.xcconfig"; path = "Target Support Files/Pods-LocalDrop-LocalDropTests/Pods-LocalDrop-LocalDropTests.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		18FCF9AB33E54E0F8F9EF9D9 /* AppDelegate.swift */ = {isa = PBXFileReference; name = "AppDelegate.swift"; path = "LocalDrop/AppDelegate.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
-		9C8150F3F4AF48C98155663C /* LocalDropPhotos.swift */ = {isa = PBXFileReference; name = "LocalDropPhotos.swift"; path = "LocalDrop/Native/LocalDropPhotos.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
-		10587B0777A94F3E86FEF7E7 /* LocalDropTransfer.swift */ = {isa = PBXFileReference; name = "LocalDropTransfer.swift"; path = "LocalDrop/Native/LocalDropTransfer.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
-		40A71D4FDB33407997BF8852 /* LocalDropDiscovery.swift */ = {isa = PBXFileReference; name = "LocalDropDiscovery.swift"; path = "LocalDrop/Native/LocalDropDiscovery.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
-		FCF3561594BB4028B4451AEA /* LocalDropSecureStore.swift */ = {isa = PBXFileReference; name = "LocalDropSecureStore.swift"; path = "LocalDrop/Native/LocalDropSecureStore.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
-		AC27A29171784AB9ACA61DE8 /* AssetFileWriter.swift */ = {isa = PBXFileReference; name = "AssetFileWriter.swift"; path = "LocalDrop/Native/AssetFileWriter.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
-		2EC41A55A76A45C19D35475F /* FileUploader.swift */ = {isa = PBXFileReference; name = "FileUploader.swift"; path = "LocalDrop/Native/FileUploader.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
-		AD8063307B7B46639F0350F6 /* Assets.xcassets */ = {isa = PBXFileReference; name = "Assets.xcassets"; path = "LocalDrop/Assets.xcassets"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = folder.assetcatalog; explicitFileType = undefined; includeInIndex = 0; };
-		0DFC9FCE4C254197A01A2150 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; name = "LaunchScreen.storyboard"; path = "LocalDrop/LaunchScreen.storyboard"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		CA7611DA90AE4BB48F7F1833 /* LocalDropNativeModules.h */ = {isa = PBXFileReference; name = "LocalDropNativeModules.h"; path = "LocalDrop/Native/LocalDropNativeModules.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
-		C268D19A72944A979060031B /* LocalDrop-Bridging-Header.h */ = {isa = PBXFileReference; name = "LocalDrop-Bridging-Header.h"; path = "LocalDrop/LocalDrop-Bridging-Header.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
+		9AE1F2C578E8418BA924A2EC /* AppDelegate.swift */ = {isa = PBXFileReference; name = "AppDelegate.swift"; path = "LocalDrop/AppDelegate.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		0C215DB7561E40859483EB23 /* LocalDropPhotos.swift */ = {isa = PBXFileReference; name = "LocalDropPhotos.swift"; path = "LocalDrop/Native/LocalDropPhotos.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		42FD55F9D8664D34BBFAC70B /* LocalDropTransfer.swift */ = {isa = PBXFileReference; name = "LocalDropTransfer.swift"; path = "LocalDrop/Native/LocalDropTransfer.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		D6F399E67B1142629125610E /* LocalDropDiscovery.swift */ = {isa = PBXFileReference; name = "LocalDropDiscovery.swift"; path = "LocalDrop/Native/LocalDropDiscovery.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		F2A3573490E642379C2D66F1 /* LocalDropSecureStore.swift */ = {isa = PBXFileReference; name = "LocalDropSecureStore.swift"; path = "LocalDrop/Native/LocalDropSecureStore.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		DDE5669F44E648338E5DC1D1 /* AssetFileWriter.swift */ = {isa = PBXFileReference; name = "AssetFileWriter.swift"; path = "LocalDrop/Native/AssetFileWriter.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		8653714BEEED41C9BCB98E50 /* FileUploader.swift */ = {isa = PBXFileReference; name = "FileUploader.swift"; path = "LocalDrop/Native/FileUploader.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		4464A545F8274D5FA1E53A09 /* Assets.xcassets */ = {isa = PBXFileReference; name = "Assets.xcassets"; path = "LocalDrop/Assets.xcassets"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = folder.assetcatalog; explicitFileType = undefined; includeInIndex = 0; };
+		AE2BCF6C06FA40A390E6F3D8 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; name = "LaunchScreen.storyboard"; path = "LocalDrop/LaunchScreen.storyboard"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		11AF8311DD5345119D7355B7 /* LocalDropNativeModules.h */ = {isa = PBXFileReference; name = "LocalDropNativeModules.h"; path = "LocalDrop/Native/LocalDropNativeModules.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
+		8057675F4A3044A39B6F3C0B /* LocalDrop-Bridging-Header.h */ = {isa = PBXFileReference; name = "LocalDrop-Bridging-Header.h"; path = "LocalDrop/LocalDrop-Bridging-Header.h"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,17 +86,17 @@
 			isa = PBXGroup;
 			children = (
 				13B07FB61A68108700A75B9A /* Info.plist */,
-				18FCF9AB33E54E0F8F9EF9D9 /* AppDelegate.swift */,
-				9C8150F3F4AF48C98155663C /* LocalDropPhotos.swift */,
-				10587B0777A94F3E86FEF7E7 /* LocalDropTransfer.swift */,
-				40A71D4FDB33407997BF8852 /* LocalDropDiscovery.swift */,
-				FCF3561594BB4028B4451AEA /* LocalDropSecureStore.swift */,
-				AC27A29171784AB9ACA61DE8 /* AssetFileWriter.swift */,
-				2EC41A55A76A45C19D35475F /* FileUploader.swift */,
-				AD8063307B7B46639F0350F6 /* Assets.xcassets */,
-				0DFC9FCE4C254197A01A2150 /* LaunchScreen.storyboard */,
-				CA7611DA90AE4BB48F7F1833 /* LocalDropNativeModules.h */,
-				C268D19A72944A979060031B /* LocalDrop-Bridging-Header.h */,
+				9AE1F2C578E8418BA924A2EC /* AppDelegate.swift */,
+				0C215DB7561E40859483EB23 /* LocalDropPhotos.swift */,
+				42FD55F9D8664D34BBFAC70B /* LocalDropTransfer.swift */,
+				D6F399E67B1142629125610E /* LocalDropDiscovery.swift */,
+				F2A3573490E642379C2D66F1 /* LocalDropSecureStore.swift */,
+				DDE5669F44E648338E5DC1D1 /* AssetFileWriter.swift */,
+				8653714BEEED41C9BCB98E50 /* FileUploader.swift */,
+				4464A545F8274D5FA1E53A09 /* Assets.xcassets */,
+				AE2BCF6C06FA40A390E6F3D8 /* LaunchScreen.storyboard */,
+				11AF8311DD5345119D7355B7 /* LocalDropNativeModules.h */,
+				8057675F4A3044A39B6F3C0B /* LocalDrop-Bridging-Header.h */,
 			);
 			name = LocalDrop;
 			sourceTree = "<group>";
@@ -217,8 +217,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6AAF6BE3610748408445D42A /* Assets.xcassets in Resources */,
-				8C86947E38D84FB2878CD670 /* LaunchScreen.storyboard in Resources */,
+				C9A60F224ED344EC947C8DA4 /* Assets.xcassets in Resources */,
+				94956BE7B02F44CBB16F9855 /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -360,13 +360,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3A593166E17D476990E4BD16 /* AppDelegate.swift in Sources */,
-				28E912D0E2084DD1B7EA180F /* LocalDropPhotos.swift in Sources */,
-				DA2AC77173B84179A4A1D254 /* LocalDropTransfer.swift in Sources */,
-				EC74DB4A918E4069B645BFB5 /* LocalDropDiscovery.swift in Sources */,
-				1C13330D3C9E4BF59C3A5147 /* LocalDropSecureStore.swift in Sources */,
-				6A1DE8EB72064BB1BA3A74AA /* AssetFileWriter.swift in Sources */,
-				692C806CB16C403E90518A35 /* FileUploader.swift in Sources */,
+				C1F7EF82C6A24315A362A8E5 /* AppDelegate.swift in Sources */,
+				CA7596FD4B4044478E9987C9 /* LocalDropPhotos.swift in Sources */,
+				7B5EED073CC04B2BBAA3160F /* LocalDropTransfer.swift in Sources */,
+				8FAA32759D774560BC2E6DC1 /* LocalDropDiscovery.swift in Sources */,
+				E03A5F7CF4E94A7F8DA5D9D0 /* LocalDropSecureStore.swift in Sources */,
+				4AA7B1DF877D4EDB8CB5EA20 /* AssetFileWriter.swift in Sources */,
+				6B332C50B0CE4A14BCF77EB5 /* FileUploader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
