@@ -1,0 +1,58 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  /* A desktop app should not feel like a web page: no rubber-banding, no text selection on
+     chrome, and no overscroll flash when a list is scrolled to its end. */
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  --font-family: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkMacSystemFont,
+    system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input {
+  font: inherit;
+}
+
+/* Row striping for the history table. Kept in CSS because a pseudo-selector cannot be
+   expressed through a React style object. */
+table tbody tr:hover {
+  background: var(--surface-muted, #eef1f6);
+}
+
+/* Respect the OS "reduce motion" setting: progress bars and spinners stop animating. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

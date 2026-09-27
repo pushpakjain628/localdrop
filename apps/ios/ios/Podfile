@@ -1,0 +1,22 @@
+resolve_source_node_modules = '../node_modules'
+
+platform :ios, min_ios_version_supported
+prepare_react_native_project!
+
+target 'LocalDrop' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # The app is fully local: no App Center, no Firebase, no code push.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  post_install do |installer|
+    react_native_post_install(installer, config[:reactNativePath], :mac_catalyst_enabled => false)
+
+    # The Photos, Bonjour and Keychain code is plain Swift/ObjC with no pods of its own, so
+    # there is nothing else to wire up. This block exists to make that explicit rather than to
+    # leave a reader wondering whether native modules were forgotten.
+  end
+end

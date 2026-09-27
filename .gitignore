@@ -1,0 +1,28 @@
+node_modules/
+
+# Stray declaration files from an out-of-band 	sc run; the real output is in dist/.
+packages/shared/src/*.d.ts
+dist/
+build/
+coverage/
+*.log
+
+# Rust / Tauri
+apps/windows/src-tauri/target/
+apps/windows/src-tauri/gen/
+
+# iOS
+apps/ios/ios/Pods/
+apps/ios/ios/build/
+apps/ios/ios/*.xcworkspace/xcuserdata/
+apps/ios/ios/*.xcodeproj/xcuserdata/
+apps/ios/ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+apps/ios/vendor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local env
+.env
+.env.local

@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2022"],
+    "types": ["jest", "react-native"],
+    "baseUrl": ".",
+    "paths": {
+      "@localdrop/shared": ["../../packages/shared/src/index.ts"]
+    },
+    "noEmit": true,
+    "allowJs": true
+  },
+  "include": ["src", "index.js", "../../packages/shared/src"],
+  "exclude": ["node_modules", "ios/build", "../../packages/shared/src/__tests__"]
+}

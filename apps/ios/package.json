@@ -1,0 +1,37 @@
+{
+  "name": "@localdrop/ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LocalDrop iPhone app: backs up photos and videos to a Windows PC over local Wi-Fi",
+  "scripts": {
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "jest",
+    "pods": "cd ios && pod install",
+    "build:debug": "cd ios && xcodebuild -workspace LocalDrop.xcworkspace -scheme LocalDrop -configuration Debug -sdk iphonesimulator -derivedDataPath build",
+    "build:release": "cd ios && xcodebuild -workspace LocalDrop.xcworkspace -scheme LocalDrop -configuration Release -sdk iphoneos -derivedDataPath build"
+  },
+  "dependencies": {
+    "@localdrop/shared": "*",
+    "react": "18.3.1",
+    "react-native": "0.76.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@babel/preset-env": "^7.25.0",
+    "@babel/runtime": "^7.25.0",
+    "@react-native/babel-preset": "0.76.5",
+    "@react-native/metro-config": "0.76.5",
+    "@react-native/typescript-config": "0.76.5",
+    "@types/jest": "^29.5.12",
+    "@types/react": "^18.3.12",
+    "jest": "^29.7.0",
+    "react-test-renderer": "18.3.1",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

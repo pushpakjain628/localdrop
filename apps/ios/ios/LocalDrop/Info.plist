@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>LocalDrop</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
+
+	<!--
+	    Local networking. Two things are required and both are easy to get wrong:
+
+	    1. NSLocalNetworkUsageDescription is shown to the user the first time the app browses
+	       for the PC over Bonjour. Without it, iOS silently returns no results and discovery
+	       looks broken.
+	    2. NSBonjourServices must list the exact service type the PC advertises. If the two
+	       disagree, mDNS resolution fails on both sides.
+	-->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>LocalDrop looks for your PC on this Wi-Fi network so you can back up photos and videos directly to it.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_localdrop._tcp</string>
+	</array>
+
+	<!--
+	    Needed for iCloud Photos: a photo that only exists in iCloud has to be downloaded before
+	    it can be streamed. Without this an iCloud-only library reports assets that fail to
+	    export.
+	-->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>LocalDrop needs access to your photos so you can choose what to back up to your PC.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>LocalDrop can save photos back to your library if you ask it to. It never does this on its own.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<!-- A backup continues if the user switches apps or the screen locks. -->
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- Large backups should be allowed to run on cellular rather than silently waiting for Wi-Fi. -->
+	<key>NSAllowsArbitraryLoads</key>
+	<false/>
+	<key>UIAppFonts</key>
+	<array/>
+</dict>
+</plist>

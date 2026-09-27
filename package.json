@@ -1,0 +1,31 @@
+{
+  "name": "localdrop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LocalDrop - wireless iPhone photo/video backup to a Windows PC over local Wi-Fi",
+  "workspaces": [
+    "packages/*",
+    "apps/ios",
+    "apps/windows"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspace @localdrop/windows",
+    "tauri": "npm run tauri --workspace @localdrop/windows",
+    "tauri:dev": "npm run tauri:dev --workspace @localdrop/windows",
+    "tauri:build": "npm run tauri:build --workspace @localdrop/windows",
+    "verify": "node scripts/verify.js",
+    "ios:project": "node scripts/generate-ios-project.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  },
+  "devDependencies": {
+    "@react-native-community/template": "0.76.5",
+    "xcode": "^3.0.1"
+  }
+}

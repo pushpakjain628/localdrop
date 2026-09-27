@@ -1,0 +1,12 @@
+﻿# Capability set for the LocalDrop dashboard window.
+#
+# The dashboard is a static local page whose only capability is reading from the app's own HTTP
+# server on loopback, which it does with `fetch` rather than a Tauri command. So nothing beyond
+# the Tauri defaults is granted: no filesystem, no shell, no HTTP plugin. That is deliberate -
+# the app handles a user's photo library, and a capability it does not need is a capability it
+# cannot be tricked into using.
+"$schema" = "../gen/schemas/desktop-schema.json"
+identifier = "default"
+description = "Minimal capability set for the LocalDrop dashboard window."
+windows = ["main"]
+permissions = ["core:default"]
