@@ -178,9 +178,10 @@ final class LocalDropPhotos: NSObject {
             "durationSeconds": asset.duration > 0 ? NSNumber(value: asset.duration) : NSNull(),
         ]
 
-        if #available(iOS 15.0, *) {
-            payload["hasCloudContent"] = NSNumber(value: !asset.isInCloud)
-        }
+        // `isInCloud` is a property of `PHAssetResource`, not of `PHAsset`
+        // ("value of type 'PHAsset' has no member 'isInCloud'"). `primary` is the resource
+        // resolved above. The deployment target is 15.1, so no availability gate is needed.
+        payload["hasCloudContent"] = NSNumber(value: primary.isInCloud)
 
         if includeLivePhotoVideo, asset.mediaSubtypes.contains(.photoLive),
            let paired = Self.pairedVideoResource(for: asset) {
@@ -207,9 +208,11 @@ final class LocalDropPhotos: NSObject {
                 return match
             }
         }
-        // `alternateImage` is the edited version and `fullSizeVideo` may be missing; anything
-        // left is still a real original if it is a photo or video pair.
-        return resources.first { $0.type == .alternateImage } ?? resources.first
+        // Anything left is still a real original. A previous version also matched
+        // `.alternateImage`, which is not a `PHAssetResourceType` case at all
+        // ("cannot call value of non-function type 'PHAssetResource?'" surfaced because the
+        // bogus case made the trailing closure resolve against the wrong overload).
+        return resources.first
     }
 
     /// The paired video resource of a Live Photo, if present.

@@ -32,16 +32,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     let delegate = BundleURLDelegate()
     bundleURLDelegate = delegate
 
-    // `nil` delegate: the bridge is only used for the root view controller below, and its
-    // `sourceURL(for:)` is answered by `BundleURLDelegate` instead.
-    let bridge = RCTBridge(delegate: nil, launchOptions: launchOptions)
+    // The bridge delegate is `BundleURLDelegate`, which answers `sourceURL(for:)` with the
+    // compiled/Metro bundle URL. Passing `nil` here would leave the bridge with no way to find
+    // the bundle at all.
+    let bridge = RCTBridge(delegate: delegate, launchOptions: launchOptions)
 
     let rootViewController = RCTRootViewController(
       bridge: bridge,
       moduleName: "LocalDrop",
       initialProperties: nil
     )
-    rootViewController.view.backgroundColor = .systemBackground
+    rootViewController.view.backgroundColor = UIColor.systemBackground
 
     let window = UIWindow(frame: UIScreen.main.bounds)
     window.rootViewController = rootViewController

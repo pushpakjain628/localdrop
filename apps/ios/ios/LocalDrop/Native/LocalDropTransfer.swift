@@ -63,7 +63,12 @@ final class LocalDropTransfer: RCTEventEmitter {
         }
         let kind = options["kind"] as? String ?? "photo"
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        // `AssetFileWriter.prepare` / `prepareLivePhotoVideo` are `async throws`, so this cannot
+        // be a plain `DispatchQueue.async` closure - a synchronous function cannot await
+        // ("'async' call in a function that does not support concurrency"). A `Task` provides
+        // the concurrency context and still keeps the work off the main thread, because
+        // `prepare` hops itself onto a background queue before touching PhotoKit.
+        Task {
             let assets = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
             guard let asset = assets.firstObject else {
                 reject("not_found", "This item is no longer in your photo library.", nil)
@@ -78,10 +83,10 @@ final class LocalDropTransfer: RCTEventEmitter {
 
                 let prepared: AssetFileWriter.Prepared
                 if kind == "livePhotoVideo" {
-                    prepared = try AssetFileWriter.prepareLivePhotoVideo(
+                    prepared = try await AssetFileWriter.prepareLivePhotoVideo(
                         localIdentifier: localIdentifier, asset: asset)
                 } else {
-                    prepared = try AssetFileWriter.prepare(
+                    prepared = try await AssetFileWriter.prepare(
                         localIdentifier: localIdentifier, asset: asset)
                 }
 
