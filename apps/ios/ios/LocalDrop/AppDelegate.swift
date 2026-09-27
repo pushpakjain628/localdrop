@@ -39,13 +39,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     // The delegate answers `sourceURL(for:)` with the Metro or compiled-bundle URL. Passing
     // `nil` here would leave the bridge with no way to locate the JavaScript bundle.
-    let bridge = RCTBridge(delegate: delegate, launchOptions: launchOptions)
-    self.bridge = bridge
+    let created: RCTBridge = RCTBridge(delegate: delegate, launchOptions: launchOptions)
+    bridge = created
 
-    let rootView = RCTRootView(bridge: bridge, moduleName: "LocalDrop", initialProperties: nil)
+    let rootView = RCTRootView(bridge: created, moduleName: "LocalDrop", initialProperties: nil)
     rootView.backgroundColor = UIColor.systemBackground
     rootView.frame = UIScreen.main.bounds
-    rootView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    rootView.autoresizingMask = [UIView.AutoresizingMask.flexibleWidth, .flexibleHeight]
 
     // `RCTRootView` is a `UIView`, not a view controller, so it needs a host controller.
     let host = RootViewController()

@@ -240,7 +240,7 @@ final class LocalDropDiscovery: RCTEventEmitter {
 
             // A short timeout: this runs on the UI thread's critical path when the user taps a
             // manually entered address, and a 30s TCP timeout would feel broken.
-            queue.asyncAfter(deadline: .now() + 5) {
+            self.queue.asyncAfter(deadline: .now() + 5) {
                 if !settled {
                     settled = true
                     connection.cancel()

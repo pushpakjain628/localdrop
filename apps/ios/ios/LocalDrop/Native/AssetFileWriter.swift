@@ -256,7 +256,7 @@ enum AssetFileWriter {
     /// rather than refusing a backup the user can see would otherwise succeed.
     static func ensureSpace(forEstimatedBytes estimate: Int64?) throws {
         let required = Int64((Double(estimate ?? 0) * 1.5).rounded()) + 64 * 1024 * 1024
-        let available = freeSpace(at: stagingDirectory())
+        let available = freeSpace(at: try stagingDirectory())
         if available > 0, available < required {
             throw WriterError.outOfDiskSpace(required: required, available: available)
         }
