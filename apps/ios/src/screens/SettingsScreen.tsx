@@ -160,6 +160,10 @@ export function SettingsScreen() {
           />
         ) : null}
         <View style={styles.spacer} />
+        {/* The build this app is actually running. A Release build has no console and no dev
+            menu, so "did the change I just built actually get onto the phone?" has no other
+            answer - and an out-of-date build looks exactly like a broken one. */}
+        <KeyValue label="App build" value={APP_BUILD} mono />
         <Text style={styles.note}>
           LocalDrop only ever adds verified copies to your PC. It never deletes anything from your
           photo library, and it never deletes anything from the backup folder.
@@ -172,6 +176,15 @@ export function SettingsScreen() {
 }
 
 /* ------------------------------------------------------------------ code entry */
+
+/**
+ * The commit this bundle was built from, compiled in by `metro.config.js`.
+ *
+ * The `unknown` fallback only appears if the constant is missing, which would mean the bundler
+ * config did not apply - worth surfacing rather than rendering blank.
+ */
+declare const __LOCALDROP_BUILD__: string;
+const APP_BUILD = typeof __LOCALDROP_BUILD__ === 'string' ? __LOCALDROP_BUILD__ : 'unknown';
 
 function PairingCodeField({
   value,

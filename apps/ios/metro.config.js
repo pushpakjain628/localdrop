@@ -10,6 +10,10 @@ const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
  *    `watchFolders` would refuse to serve it. It is added explicitly.
  * 2. The iOS native sources are inside the project, so they are watched too - editing a Swift
  *    file should invalidate the bundle rather than silently serve a stale one.
+ *
+ * The build identity is *not* configured here. `transform.define` is a Vite option; Metro has no
+ * equivalent and ignores it, so the constant is inlined by the Babel plugin in `babel.config.js`
+ * instead, which works for Metro and for Jest alike.
  */
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '../..');

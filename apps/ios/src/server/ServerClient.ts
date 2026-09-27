@@ -150,8 +150,22 @@ async function request<T>(
         0,
       );
     }
+    // Worth being specific, because "could not reach the PC" has three quite different causes and
+    // the user cannot tell them apart from the message:
+    //
+    //   * An out-of-date app. The wire protocol is plain HTTP, so a build from before the App
+    //     Transport Security fix is blocked by iOS before a packet is sent - and Safari can
+    //     still reach the same URL, because WebKit permits cleartext to local addresses. That
+    //     asymmetry is the tell.
+    //   * A firewall or a network that isolates clients.
+    //   * The PC app not running.
+    //
+    // Naming the first one is the difference between a user reinstalling the app and a user
+    // moving the app to a different Wi-Fi for an hour.
     throw new ServerError(
-      'Could not reach the PC. Check that LocalDrop is running and both devices are on the same Wi-Fi.',
+      'Could not reach the PC. If Safari can open http://ADDRESS/api/health on this phone but ' +
+        'LocalDrop cannot, this app is out of date - install the newest build. Otherwise check ' +
+        'that LocalDrop is running on the PC and that both devices are on the same Wi-Fi.',
       'network_error',
       0,
     );
