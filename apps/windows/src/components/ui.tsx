@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { colors, radii, shadows, spacing } from '../styles/theme';
+import { colors, radii, shadows, spacing, type } from '../styles/theme';
 import { toneColors, type Tone } from '../lib/format';
 
 /* ------------------------------------------------------------------ primitives */
@@ -21,7 +21,7 @@ export function Card({
     <section style={styles.card}>
       {(title || actions) && (
         <header style={styles.cardHeader}>
-          <div>
+          <div style={styles.cardHeading}>
             {title && <h2 style={styles.cardTitle}>{title}</h2>}
             {subtitle && <p style={styles.cardSubtitle}>{subtitle}</p>}
           </div>
@@ -147,7 +147,12 @@ export function StatTile({
   return (
     <div style={styles.statTile}>
       <span style={styles.statLabel}>{label}</span>
-      <span style={{ ...styles.statValue, color: tone === 'neutral' ? colors.text : toneColors(tone).fg }}>
+      <span
+        style={{
+          ...styles.statValue,
+          color: tone === 'neutral' ? colors.text : toneColors(tone).fg,
+        }}
+      >
         {value}
       </span>
       {hint && <span style={styles.statHint}>{hint}</span>}
@@ -182,7 +187,6 @@ export function ErrorBanner({ message, onDismiss }: { message: string; onDismiss
 const styles: Record<string, CSSProperties> = {
   card: {
     background: colors.surface,
-    border: `1px solid ${colors.border}`,
     borderRadius: radii.lg,
     boxShadow: shadows.card,
     overflow: 'hidden',
@@ -191,19 +195,24 @@ const styles: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: spacing.md,
-    padding: `${spacing.lg}px ${spacing.lg}px ${spacing.md}px`,
-    borderBottom: `1px solid ${colors.border}`,
+    gap: spacing.lg,
+    padding: `${spacing.lg}px ${spacing.xl}px`,
   },
-  cardTitle: { margin: 0, fontSize: 15, fontWeight: 650 },
-  cardSubtitle: { margin: '2px 0 0', fontSize: 12.5, color: colors.textMuted },
-  cardBody: { padding: spacing.lg },
+  // The heading is allowed to shrink so a long subtitle ellipsises instead of pushing the
+  // card's action button off the right edge.
+  cardHeading: { minWidth: 0 },
+  cardTitle: { margin: 0, ...type.title },
+  cardSubtitle: { margin: '3px 0 0', fontSize: 12.5, color: colors.textMuted },
+  cardBody: {
+    padding: `0 ${spacing.xl}px ${spacing.xl}px`,
+  },
   button: {
     padding: '7px 14px',
     borderRadius: radii.sm,
     border: '1px solid',
     fontSize: 13,
     fontWeight: 600,
+    whiteSpace: 'nowrap',
     transition: 'filter 120ms ease',
   },
   progressTrack: {
@@ -218,26 +227,21 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: radii.pill,
     transition: 'width 180ms linear',
   },
+  // Tiles are inset panels rather than outlined boxes: a 2x2 grid of bordered rectangles reads
+  // as four competing cards, and there are already four cards on screen.
   statTile: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 2,
+    gap: 3,
     padding: `${spacing.md}px ${spacing.lg}px`,
-    background: colors.surface,
-    border: `1px solid ${colors.border}`,
+    background: colors.surfaceMuted,
     borderRadius: radii.md,
   },
-  statLabel: {
-    fontSize: 11.5,
-    fontWeight: 600,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-    color: colors.textFaint,
-  },
-  statValue: { fontSize: 20, fontWeight: 680, lineHeight: 1.25 },
-  statHint: { fontSize: 12, color: colors.textMuted },
+  statLabel: { ...type.label, color: colors.textFaint },
+  statValue: { ...type.metric },
+  statHint: { fontSize: 12, color: colors.textMuted, fontVariantNumeric: 'tabular-nums' },
   empty: {
-    padding: `${spacing.xl}px`,
+    padding: `${spacing.xxl}px ${spacing.xl}px`,
     textAlign: 'center',
     background: colors.surfaceMuted,
     borderRadius: radii.md,
@@ -245,11 +249,12 @@ const styles: Record<string, CSSProperties> = {
   errorBanner: {
     display: 'flex',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
+    margin: `${spacing.lg}px ${spacing.xl}px 0`,
     padding: `${spacing.md}px ${spacing.lg}px`,
     background: colors.dangerSoft,
     color: colors.danger,
-    borderBottom: `1px solid ${colors.border}`,
+    borderRadius: radii.md,
     fontSize: 13,
     fontWeight: 550,
   },

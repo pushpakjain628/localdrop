@@ -201,16 +201,24 @@ const styles: Record<string, CSSProperties> = {
   main: {
     flex: 1,
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1.6fr) minmax(300px, 1fr)',
+    // The primary column is wider, but the sidebar has a floor so a long library path or a long
+    // PC name cannot squeeze the stats into unreadable slivers.
+    gridTemplateColumns: 'minmax(0, 1.55fr) minmax(320px, 1fr)',
     gridAutoRows: 'min-content',
-    gap: spacing.lg,
+    gap: spacing.xl,
+    // A measure cap: past roughly 1500px the two columns drift so far apart that the eye stops
+    // treating them as one dashboard, and the cards get so wide that a short line of text in one
+    // has nothing to line up against in the other.
+    maxWidth: 1520,
+    width: '100%',
+    margin: '0 auto',
     padding: spacing.xl,
     alignItems: 'start',
   },
-  primary: { display: 'flex', flexDirection: 'column', gap: spacing.lg, minWidth: 0 },
-  sidebar: { display: 'flex', flexDirection: 'column', gap: spacing.lg, minWidth: 0 },
+  primary: { display: 'flex', flexDirection: 'column', gap: spacing.xl, minWidth: 0 },
+  sidebar: { display: 'flex', flexDirection: 'column', gap: spacing.xl, minWidth: 0 },
   fullWidth: { gridColumn: '1 / -1' },
-  // Keeps the background colour on the scroll container rather than the body so the app chrome
-  // does not flash white while scrolling.
+  // Kept on the scroll container rather than the body so the app chrome does not flash white
+  // while scrolling.
   body: { background: colors.bg },
 };

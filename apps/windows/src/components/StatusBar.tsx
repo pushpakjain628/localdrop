@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { colors, spacing } from '../styles/theme';
+import { colors, shadows, spacing, type } from '../styles/theme';
 import { Pill } from './ui';
 import type { Tone } from '../lib/format';
 import type { ConnectionState } from '../lib/useServer';
@@ -39,7 +39,7 @@ export function StatusBar({
     <header style={styles.bar}>
       <div style={styles.identity}>
         <Logo />
-        <div>
+        <div style={styles.identityText}>
           <div style={styles.title}>LocalDrop</div>
           <div style={styles.subtitle}>{health?.serverName ?? 'Windows PC'}</div>
         </div>
@@ -49,44 +49,38 @@ export function StatusBar({
         <StatusPill connection={connection} />
 
         {/* The manual-entry fallback. The phone's "enter address" sheet tells the user to read
-            this from the top bar, so it has to be here - and it has to be clickable, because
-            typing an address off a screen is where transposed digits come from. */}
-        <div style={styles.meta}>
-          <MetaLabel
-            label="On this network"
-            value={
-              health?.lanAddresses?.length
-                ? health.lanAddresses.map((address) => `${address}:${DEFAULT_PORT}`).join('  ')
-                : 'No LAN address found'
-            }
-            tone={health?.lanAddresses?.length ? 'neutral' : 'warning'}
-            selectable
-          />
-        </div>
+            this from the top bar, so it has to be here - and it has to be selectable, because
+            reading an address off a screen and retyping it is where transposed digits come from.
+            It is the first fact on the right because it is the one the user needs when pairing
+            is not working, and pairing not working is when they open this app. */}
+        <MetaLabel
+          label="On this network"
+          value={
+            health?.lanAddresses?.length
+              ? health.lanAddresses.map((address) => `${address}:${DEFAULT_PORT}`).join('  ')
+              : 'None found'
+          }
+          tone={health?.lanAddresses?.length ? 'neutral' : 'warning'}
+          selectable
+        />
 
-        <div style={styles.meta}>
-          <MetaLabel
-            label="Library"
-            value={health?.backupDirectory ?? '—'}
-            tone={storageWritable ? 'neutral' : 'danger'}
-          />
-        </div>
+        <MetaLabel
+          label="Library"
+          value={health?.backupDirectory ?? '—'}
+          tone={storageWritable ? 'neutral' : 'danger'}
+        />
 
-        <div style={styles.meta}>
-          <MetaLabel
-            label="Free space"
-            value={freeSpaceBytes === null ? 'Unknown' : formatFree(freeSpaceBytes)}
-            tone={freeSpaceBytes !== null && freeSpaceBytes < 5 * 1024 ** 3 ? 'warning' : 'neutral'}
-          />
-        </div>
+        <MetaLabel
+          label="Free space"
+          value={freeSpaceBytes === null ? 'Unknown' : formatFree(freeSpaceBytes)}
+          tone={freeSpaceBytes !== null && freeSpaceBytes < 5 * 1024 ** 3 ? 'warning' : 'neutral'}
+        />
 
-        <div style={styles.meta}>
-          <MetaLabel
-            label="Waiting for"
-            value={health?.paired ? 'a connected iPhone' : 'you to pair an iPhone'}
-            tone={health?.paired ? 'success' : 'warning'}
-          />
-        </div>
+        <MetaLabel
+          label="Waiting for"
+          value={health?.paired ? 'a connected iPhone' : 'you to pair one'}
+          tone={health?.paired ? 'success' : 'warning'}
+        />
       </div>
     </header>
   );
@@ -131,7 +125,6 @@ function MetaLabel({
     </div>
   );
 }
-
 /** Breathing dot that marks a live WebSocket connection. */
 function Pulse() {
   return (
@@ -175,37 +168,48 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.xl,
-    padding: `${spacing.md}px ${spacing.xl}px`,
+    padding: `${spacing.lg}px ${spacing.xl}px`,
     background: colors.surface,
-    borderBottom: `1px solid ${colors.border}`,
+    boxShadow: `0 1px 0 ${colors.border}, ${shadows.card}`,
+    // Wrapping is allowed, but each fact is sized to its own content and never wraps mid-value,
+    // so a narrow window reflows into two clean rows instead of a ragged one.
     flexWrap: 'wrap',
+    rowGap: spacing.lg,
   },
-  identity: { display: 'flex', alignItems: 'center', gap: spacing.md },
+  identity: { display: 'flex', alignItems: 'center', gap: spacing.md, flexShrink: 0 },
+  identityText: { minWidth: 0 },
   logo: { flexShrink: 0, borderRadius: 9 },
-  title: { fontSize: 16, fontWeight: 680, letterSpacing: -0.2 },
+  title: { fontSize: 16, fontWeight: 700, letterSpacing: -0.2 },
   subtitle: { fontSize: 12.5, color: colors.textMuted },
   statusGroup: {
     display: 'flex',
     alignItems: 'center',
     gap: spacing.xl,
     flexWrap: 'wrap',
+    rowGap: spacing.md,
+    // The facts are pushed to the right and are allowed to use the space they need; the
+    // identity block keeps its place on the left.
+    marginLeft: 'auto',
   },
-  meta: { minWidth: 0 },
-  metaItem: { display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 },
-  metaLabel: {
-    fontSize: 10.5,
-    fontWeight: 700,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    color: colors.textFaint,
+  // A hairline between facts instead of a box around each. Four outlined boxes in a row read as
+  // four separate widgets; a rule reads as one strip of related information.
+  metaItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    minWidth: 0,
+    paddingLeft: spacing.lg,
+    borderLeft: `1px solid ${colors.border}`,
   },
+  metaLabel: { ...type.label, color: colors.textFaint },
   metaValue: {
     fontSize: 13,
     fontWeight: 600,
-    maxWidth: 260,
+    maxWidth: 280,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+    fontVariantNumeric: 'tabular-nums',
   },
   pulseWrap: { display: 'inline-flex', width: 8, height: 8 },
   pulse: {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { ServerSettingsResponse } from '@localdrop/shared';
-import { colors, radii, spacing } from '../styles/theme';
+import { colors, radii, spacing, type } from '../styles/theme';
 import { formatBytes } from '../lib/format';
 import { Button, Card, Pill } from './ui';
 
@@ -190,26 +190,31 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: 'nowrap',
   },
   factHint: { fontSize: 11.5, color: colors.textMuted },
-  suggestions: { marginTop: spacing.lg },
-  suggestionsLabel: {
-    fontSize: 10.5,
-    fontWeight: 700,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    color: colors.textFaint,
+  suggestions: { marginTop: spacing.xl },
+  suggestionsLabel: { ...type.label, color: colors.textFaint },
+  // One scrolling row rather than a wrapping block. These are long filesystem paths, so a
+  // wrapping block produced a second row holding a single orphan chip, which looked like a
+  // layout bug rather than a list. Scrolling keeps the row height stable no matter how many
+  // there are, and a partially visible chip is itself the hint that there is more.
+  chips: {
+    display: 'flex',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    overflowX: 'auto',
+    paddingBottom: 2,
   },
-  chips: { display: 'flex', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   chip: {
-    padding: '5px 10px',
+    padding: '5px 12px',
     borderRadius: radii.pill,
-    border: `1px solid ${colors.borderStrong}`,
-    background: colors.surface,
+    border: `1px solid ${colors.border}`,
+    background: colors.surfaceMuted,
     fontSize: 12,
     color: colors.text,
     maxWidth: 220,
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
   error: { margin: `${spacing.md}px 0 0`, color: colors.danger, fontSize: 13 },
   note: {

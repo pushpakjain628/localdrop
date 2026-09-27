@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { formatPairingCode } from '@localdrop/shared';
-import { colors, radii, spacing } from '../styles/theme';
+import { colors, font, radii, spacing, type } from '../styles/theme';
 import { formatCountdown } from '../lib/format';
 import { Button, Card } from './ui';
 
@@ -65,28 +65,31 @@ export function PairingCard({ code, expiresAt, onRotate, busy, error }: PairingC
     </Card>
   );
 }
-
 const styles: Record<string, CSSProperties> = {
+  // Centred and stacked, not a row. The code is the one thing a user walks over to the phone to
+  // read, so it is treated as a hero: big, centred, with the countdown as a caption underneath
+  // rather than competing for the same line.
   codeBox: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    padding: `${spacing.lg}px ${spacing.xl}px`,
+    gap: spacing.sm,
+    padding: `${spacing.xl}px ${spacing.xl}px ${spacing.lg}px`,
     background: colors.accentSoft,
-    borderRadius: radii.md,
-    flexWrap: 'wrap',
+    border: `1px solid ${colors.accentBorder}`,
+    borderRadius: radii.lg,
   },
   code: {
-    fontFamily: '"Cascadia Mono", Consolas, ui-monospace, monospace',
-    fontSize: 40,
-    fontWeight: 700,
-    letterSpacing: 6,
+    ...type.display,
+    fontFamily: font.mono,
     color: colors.accent,
-    lineHeight: 1.1,
+    // Wide tracking is what makes six digits read as three groups rather than one smear. The
+    // format function already inserts a space; this separates the glyphs within each group.
+    letterSpacing: 8,
+    paddingLeft: 8,
   },
-  countdown: { fontSize: 13, color: colors.textMuted },
-  timer: { fontFamily: '"Cascadia Mono", Consolas, monospace', color: colors.text },
+  countdown: { fontSize: 12.5, color: colors.textMuted },
+  timer: { fontFamily: font.mono, color: colors.text, fontVariantNumeric: 'tabular-nums' },
   expiredBox: {
     padding: spacing.lg,
     background: colors.warningSoft,

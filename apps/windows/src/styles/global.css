@@ -9,6 +9,28 @@ body,
   margin: 0;
 }
 
+/*
+  The canvas and text colour, mirrored from `styles/theme.ts`.
+
+  These have to exist as real custom properties, not just as values in a React style object. The
+  declarations below that use `var(--bg)` and `var(--text)` are invalid at computed-value time if
+  the variables are undefined, which means the colour silently falls back to `unset` - the canvas
+  came out white and the app had no background at all. They are duplicated here rather than shared
+  because a Tauri build has no bundler step that could inline them into this file.
+*/
+:root {
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --surface-muted: #f5f7fa;
+  --border: #e2e7ef;
+  --text: #0f1622;
+  --text-muted: #59657a;
+
+  --font-family: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkMacSystemFont,
+    system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+}
+
 body {
   font-family: var(--font-family);
   font-size: 14px;
@@ -19,12 +41,6 @@ body {
      chrome, and no overscroll flash when a list is scrolled to its end. */
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
-}
-
-:root {
-  --font-family: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkMacSystemFont,
-    system-ui, sans-serif;
-  --font-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
 }
 
 button {

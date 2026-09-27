@@ -103,18 +103,38 @@ Those are compiled Swift/Objective-C files; reloading JavaScript is not enough.
 
 ### If the iPhone cannot see the PC
 
-In order of likelihood:
+**First, find out which of the two problems you have.** Open this in Safari on the
+phone, using the address from **On this network** in the dashboard:
 
-1. **The app is out of date.** Sideload the `.ipa` from the latest
+```
+http://192.168.1.7:47821/api/health
+```
+
+- **You get JSON** — the network is fine and the problem is in the app. Skip to step 4.
+- **It times out** — the two devices cannot reach each other at all, and nothing in the app
+  will change that. Go to step 2.
+
+This takes ten seconds and it is the only way to tell "the phone cannot reach the PC" apart
+from "the app is not finding the PC", which look identical from the phone.
+
+Then, in order of likelihood:
+
+1. **The Wi-Fi blocks clients from talking to each other.** Public hotspots and
+   office/guest networks very often enable client isolation, and it breaks *both* mDNS discovery
+   and direct connections. Nothing can fix it in software. Try a phone hotspot, or a home
+   router, and put both devices on that. This is the most common cause of "it works on my
+   laptop's Wi-Fi but not here".
+
+2. **The phone is not on the same network.** Check the network name on the phone against the
+   one in the dashboard.
+
+3. **The app is out of date.** Sideload the `.ipa` from the latest
    [successful build](https://github.com/pushpakjain628/localdrop/actions). A build from before
    the App Transport Security fix cannot make *any* request to the PC, because the app talks
    plain HTTP and iOS blocks cleartext by default. `Info.plist` now carries an
    `NSAppTransportSecurity` exception scoped to local networking.
 
-2. **The phone and the PC are not on the same Wi-Fi.** Guest networks in particular isolate
-   clients from each other, so mDNS never crosses them.
-
-3. **Windows Firewall is blocking the port.** The server binds `0.0.0.0:47821`, and the first
+4. **Windows Firewall is blocking the port.** The server binds `0.0.0.0:47821`, and the first
    launch normally prompts to allow it. If that prompt was dismissed, allow it for **all**
    profiles — the rules Windows creates on first run are often scoped to one profile, and a
    profile change silently breaks them:
@@ -126,9 +146,13 @@ In order of likelihood:
      -Profile Any
    ```
 
-4. **Discovery is blocked but the network works.** Tap **Enter address** on the phone and type
-   the address from **On this network** in the dashboard's top bar. That is the documented
-   fallback and it needs nothing but the two devices being on the same subnet.
+5. **Discovery is blocked but the network works.** Tap **Enter address** on the phone and type
+   the address from **On this network**. That is the documented fallback and it needs nothing
+   but the two devices being on the same subnet.
+
+Only adapters with a default gateway are listed, so a virtual adapter's address
+(192.168.56.1 from VirtualBox, and similar from WSL, Hyper-V and Docker) is never
+offered — it has an address and no route, and a phone can never reach it.
 
 ---
 
