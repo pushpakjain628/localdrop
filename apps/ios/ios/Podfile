@@ -1,3 +1,9 @@
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
 resolve_source_node_modules = '../node_modules'
 
 platform :ios, min_ios_version_supported
