@@ -178,8 +178,8 @@ final class LocalDropTransfer: RCTEventEmitter {
     /// Deletes a prepared file once its transfer is finished.
     @objc(discardPreparedFile:resolver:rejecter:)
     func discardPreparedFile(_ path: String,
-                             resolve: RCTPromiseResolveBlock,
-                             rejecter _: RCTPromiseRejectBlock) {
+                             resolve: @escaping RCTPromiseResolveBlock,
+                             rejecter _: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.global(qos: .utility).async {
             AssetFileWriter.discard(path: path)
             resolve(true)

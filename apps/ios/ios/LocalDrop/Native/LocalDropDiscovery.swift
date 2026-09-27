@@ -116,8 +116,8 @@ final class LocalDropDiscovery: RCTEventEmitter {
 
     @objc(stopBrowsing:resolver:rejecter:)
     func stopBrowsing(_ listenerId: String,
-                      resolver resolve: RCTPromiseResolveBlock,
-                      rejecter _: RCTPromiseRejectBlock) {
+                      resolver resolve: @escaping RCTPromiseResolveBlock,
+                      rejecter _: @escaping RCTPromiseRejectBlock) {
         queue.async {
             self.listenerId = nil
             self.browser?.cancel()
