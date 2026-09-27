@@ -1,0 +1,120 @@
+# Build the LocalDrop iOS app into an unsigned .ipa on a macOS runner,
+# so it can be sideloaded (Sideloadly / AltStore) onto a physical iPhone.
+name: Build iOS App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "apps/ios/**"
+      - "packages/**"
+      - ".github/workflows/build-ios.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-ios:
+    name: Build unsigned .ipa
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      NODE_VERSION: "20"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Show environment
+        run: |
+          sw_vers
+          xcodebuild -version
+          node -v
+          ruby -v
+          pod --version
+
+      - name: Install Node (match package engines)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: npm install (workspace root)
+        run: npm install
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/CocoaPods
+            ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+          restore-keys: ${{ runner.os }}-pods-
+
+      - name: pod install
+        working-directory: apps/ios/ios
+        run: pod install --repo-update
+
+      - name: Verify the JS bundle builds
+        working-directory: apps/ios
+        run: |
+          npx react-native bundle \
+            --entry-file index.js \
+            --platform ios \
+            --dev false \
+            --reset-cache \
+            --bundle-output /tmp/rn-bundle-check.jsbundle \
+            --assets-dest /tmp/rn-assets-check
+
+      - name: Build unsigned .ipa
+        working-directory: apps/ios/ios
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild \
+            -workspace LocalDrop.xcworkspace \
+            -scheme LocalDrop \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            -archivePath build/LocalDrop.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            ENABLE_BITCODE=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            SWIFT_VERSION=5.0 \
+            2>&1 | tee build/xcodebuild.log
+
+      - name: Package .ipa
+        working-directory: apps/ios/ios
+        run: |
+          set -euo pipefail
+          APP=$(find build/DerivedData/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -1)
+          if [ -z "$APP" ]; then echo "No .app produced"; exit 1; fi
+          echo "App bundle: $APP"
+          rm -rf build/Payload
+          mkdir -p build/Payload
+          cp -R "$APP" build/Payload/
+          cd build
+          zip -qry LocalDrop-unsigned.ipa Payload
+          ls -lh LocalDrop-unsigned.ipa
+          unzip -l LocalDrop-unsigned.ipa | head -25
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: LocalDrop-unsigned-ipa
+          path: apps/ios/ios/build/LocalDrop-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30

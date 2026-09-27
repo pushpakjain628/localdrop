@@ -1,0 +1,31 @@
+* text=auto
+
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.sh     text eol=lf
+Podfile  text eol=lf
+
+# Code
+*.ts     text eol=lf
+*.tsx    text eol=lf
+*.js     text eol=lf
+*.jsx    text eol=lf
+*.rs     text eol=lf
+*.swift  text eol=lf
+*.h      text eol=lf
+*.m      text eol=lf
+*.mm     text eol=lf
+
+# Plists / pbxproj
+*.plist  text eol=lf
+*.pbxproj text eol=lf
+
+# Never rewrite these
+*.png           binary
+*.jpg           binary
+*.heic          binary
+*.ico           binary
+*.p12           binary
+*.mobileprovision binary
+*.ipa           binary
+*.xcarchive     binary
