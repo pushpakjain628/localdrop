@@ -225,6 +225,29 @@ describe('DiscoveryManager', () => {
     expect('error' in result).toBe(true);
   });
 
+  it('reports an error instead of crashing when native resolves null', async () => {
+    // The reported failure: `Cannot read property 'reachable' of null`. The native side had been
+    // resolving this promise with a Swift `Result` enum, which crosses the bridge as an opaque
+    // value and arrives here as `null`. Reading through it threw, and a throw inside a promise
+    // chain is not something the UI can present - the screen just stopped.
+    //
+    // TypeScript would not have caught it: the declared return type is a non-nullable
+    // `HostReachability`, and the whole point is that native broke that promise. So the call
+    // site has to check, and this test is what holds it in place.
+    nativeDiscovery.resolveHost.mockResolvedValueOnce(null as never);
+    const result = await manager.addManualServer('192.168.1.7', 47821);
+    expect('error' in result).toBe(true);
+    if ('error' in result) {
+      expect(result.error).toContain('bug in the app');
+    }
+  });
+
+  it('reports an error instead of crashing when native resolves undefined', async () => {
+    nativeDiscovery.resolveHost.mockResolvedValueOnce(undefined as never);
+    const result = await manager.addManualServer('192.168.1.7', 47821);
+    expect('error' in result).toBe(true);
+  });
+
   it('forgets a server on request', async () => {
     await manager.start();
     const added = await manager.addManualServer('192.168.1.42', 47821);

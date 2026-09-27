@@ -217,23 +217,38 @@ final class LocalDropDiscovery: RCTEventEmitter {
             let connection = NWConnection(host: endpointHost, port: resolvedPort, using: .tcp)
             var settled = false
 
-            func finish(_ result: Result<[String: Any], NWError>) {
+            // `RCTPromiseResolveBlock` takes `Any?`, so the value handed to it crosses into
+            // JavaScript. A Swift `Result` is a non-`@objc` enum: boxed into `Any?` it becomes an
+            // opaque `__SwiftValue` that serialises to `null`, so the promise resolved with
+            // `null` and the caller threw on `reachability.reachable`. Only plain bridgeable
+            // values - dictionaries, strings, numbers - are ever passed across.
+            //
+            // Failure is a `reject`, not a resolved result: a caller checking `reachable` cannot
+            // tell "no" from "here is an error" otherwise, and the two need different wording.
+            func succeed(_ body: [String: Any]) {
                 guard !settled else { return }
                 settled = true
                 connection.cancel()
-                resolve(result)
+                resolve(body)
+            }
+
+            func fail(_ code: String, _ message: String) {
+                guard !settled else { return }
+                settled = true
+                connection.cancel()
+                reject(code, message, nil)
             }
 
             connection.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    finish(.success([
+                    succeed([
                         "reachable": true,
                         "host": host,
                         "port": NSNumber(value: Int(resolvedPort.rawValue)),
-                    ]))
+                    ])
                 case .failed(let error):
-                    finish(.failure(error))
+                    fail("unreachable", "\(host):\(resolvedPort.rawValue) did not accept a connection: \(error.localizedDescription)")
                 case .cancelled:
                     if !settled {
                         settled = true

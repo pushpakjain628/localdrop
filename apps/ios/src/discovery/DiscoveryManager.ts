@@ -137,7 +137,20 @@ export class DiscoveryManager {
     }
     const endpoint = manualEndpoint(trimmed, port);
     try {
+      // Defensive about the shape, not just the value. This promise is resolved by native code,
+      // and an earlier version resolved it with a Swift `Result` enum, which crosses the bridge
+      // as an opaque value and arrives in JavaScript as `null` - so `reachability.reachable`
+      // threw "Cannot read property 'reachable' of null" and the user saw a crash instead of an
+      // answer. Nothing in the type system can catch that from this side, so the call site
+      // assumes the contract might be broken and says so.
       const reachability = await Discovery.resolveHost(endpoint.host, endpoint.port);
+      if (reachability === null || reachability === undefined) {
+        return {
+          error:
+            `The app could not read the result of the connection test to ${endpoint.host}:${endpoint.port}. ` +
+            'This is a bug in the app - please reinstall the latest build.',
+        };
+      }
       if (!reachability.reachable) {
         return { error: `Could not reach ${endpoint.host}:${endpoint.port}.` };
       }
